@@ -12,10 +12,7 @@ class AppAdministrador extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'GeoPrag - Admin',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
-      ),
+      theme: GeopragTheme.light(),
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreenWeb(),
