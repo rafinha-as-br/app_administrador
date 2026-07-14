@@ -16,6 +16,12 @@ class AppAdministrador extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const LoginScreenWeb(),
+        '/senha/esqueci': (context) => const EsqueciSenhaWebScreen(),
+        '/senha/aguardando': (context) => const AguardandoAutorizacaoScreen(),
+        '/senha/autorizar': (context) => const AutorizacaoRedefinicaoScreen(),
+        '/senha/codigo-subadmin': (context) => const VerificarCodigoSubAdminScreen(),
+        '/senha/codigo-admin': (context) => const VerificarCodigoAdminScreen(),
+        '/senha/recriar': (context) => const RecriarSenhaWebScreen(),
         '/dashboard': (context) => const DashboardGeralScreen(),
         '/mapa': (context) => const MapMonitoringScreen(),
         '/aplicadores': (context) => const DashboardAplicadoresScreen(),
