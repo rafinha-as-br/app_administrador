@@ -103,6 +103,22 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const VisualizacaoIndividualScreen(),
     ),
     GoRoute(
+      path: '/aplicacoes',
+      builder: (context, state) => const DashboardDeAplicacoesScreen(),
+    ),
+    GoRoute(
+      path: '/aplicacoes/bairro',
+      builder: (context, state) => const VisualizacaoDeBairroScreen(),
+    ),
+    GoRoute(
+      path: '/aplicacoes/detalhes',
+      builder: (context, state) => const VisualizacaoDePontoDeAplicacaoScreen(),
+    ),
+    GoRoute(
+      path: '/aplicacoes/criar',
+      builder: (context, state) => const CriacaoDePontoScreen(),
+    ),
+    GoRoute(
       path: '/estoque',
       builder: (context, state) => const DashboardEstoqueScreen(),
     ),
