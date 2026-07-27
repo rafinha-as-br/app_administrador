@@ -104,11 +104,11 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/aplicacoes',
-      builder: (context, state) => const DashboardDeAplicacoesScreen(),
+      builder: (context, state) => const DashboardAplicacoesPage(),
     ),
     GoRoute(
       path: '/aplicacoes/bairro',
-      builder: (context, state) => const VisualizacaoDeBairroScreen(),
+      builder: (context, state) => const VisualizacaoBairroPage(),
     ),
     GoRoute(
       path: '/aplicacoes/detalhes',
