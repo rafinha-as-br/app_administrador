@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geoprag_modules/geoprag_modules.dart';
+import 'package:geoprag_modules/portal_administrador/autenticacao/core/admin_account.dart';
+import 'package:geoprag_modules/portal_administrador/autenticacao/presentation/admin_session_cubit.dart';
+import 'package:geoprag_modules/portal_administrador/autenticacao/presentation/admin_session_state.dart';
 import 'package:geoprag_modules/portal_administrador/bootstrap.dart';
 import 'package:geoprag_modules/portal_administrador/tenant/tenant.dart';
 import 'package:go_router/go_router.dart';
@@ -18,6 +21,12 @@ const AdminBootstrap _bootstrap = AdminBootstrap();
 // endpoints); mockado aqui até o contrato ser fechado com o backend.
 final TenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
   ..load('gaspar-sc');
+
+// Sessão do administrador logado (GEOPRAG-36) — provida na raiz pelo mesmo
+// motivo do _tenantCubit acima: o guard de rota do módulo
+// `gerenciamento_de_administradores` precisa do cargo atual antes de
+// qualquer tela ser montada.
+final AdminSessionCubit _adminSessionCubit = _bootstrap.buildAdminSessionCubit();
 
 const _publicPaths = {
   '/',
@@ -38,6 +47,16 @@ final GoRouter _router = GoRouter(
   redirect: (context, state) {
     if (_publicPaths.contains(state.matchedLocation)) return null;
     if (_tenantCubit.state is! TenantReady) return '/tenant/carregando';
+    // GEOPRAG-36: módulo restrito a quem tem cargo Administrador — front-end
+    // apenas (validação em back-end é requisito documentado, não
+    // implementável nesta sessão de trabalho, ver bootstrap.dart).
+    if (state.matchedLocation.startsWith('/administradores')) {
+      final sessao = _adminSessionCubit.state;
+      final isAdministrador =
+          sessao is AdminSessionAutenticado &&
+          sessao.conta.role == AdminRole.administrador;
+      if (!isAdministrador) return '/dashboard';
+    }
     return null;
   },
   routes: [
@@ -103,6 +122,13 @@ final GoRouter _router = GoRouter(
       builder: (context, state) => const VisualizacaoIndividualScreen(),
     ),
     GoRoute(
+      path: '/administradores',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarAdministradorCubit(),
+        child: const CriacaoDeAdministradorScreen(),
+      ),
+    ),
+    GoRoute(
       path: '/estoque',
       builder: (context, state) => const DashboardEstoqueScreen(),
     ),
@@ -150,13 +176,17 @@ class AppAdministrador extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TenantCubit é provido na raiz (exceção deliberada à regra de
-    // "BlocProvider escopado por rota" da Fase 3): ele guia o `redirect` do
-    // GoRouter antes de qualquer tela existir, então precisa estar acima do
-    // router. Os demais Blocs (auth, etc.) ficam escopados por rota, dentro
-    // de cada `GoRoute.builder` acima.
-    return BlocProvider.value(
-      value: _tenantCubit,
+    // TenantCubit e AdminSessionCubit são providos na raiz (exceção
+    // deliberada à regra de "BlocProvider escopado por rota" da Fase 3):
+    // ambos guiam o `redirect` do GoRouter e o `SidebarMenu` antes de
+    // qualquer tela existir, então precisam estar acima do router. Os
+    // demais Blocs (auth, etc.) ficam escopados por rota, dentro de cada
+    // `GoRoute.builder` acima.
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _tenantCubit),
+        BlocProvider.value(value: _adminSessionCubit),
+      ],
       child: MaterialApp.router(
         title: 'GeoPrag - Admin',
         theme: GeopragTheme.light(),

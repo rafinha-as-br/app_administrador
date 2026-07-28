@@ -37,6 +37,10 @@ class AdminGoRouterNavigator implements AdminNavigator {
   void toAplicadorDetalhes() => _router.push('/aplicadores/detalhes');
 
   @override
+  void toGerenciamentoAdministradores() =>
+      _router.pushReplacement('/administradores');
+
+  @override
   void toEstoque() => _router.pushReplacement('/estoque');
   @override
   void toEstoqueFormula() => _router.push('/estoque/formula');
