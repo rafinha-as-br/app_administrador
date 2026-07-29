@@ -16,7 +16,7 @@ const AdminBootstrap _bootstrap = AdminBootstrap();
 
 // TODO(GEOPRAG-24): tenant_id real vem do login (Fase 4/contrato de
 // endpoints); mockado aqui até o contrato ser fechado com o backend.
-final TenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
+final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
   ..load('gaspar-sc');
 
 const _publicPaths = {
@@ -37,7 +37,7 @@ final GoRouter _router = GoRouter(
   // considera sempre autenticado. Guard de tenant abaixo já é real (Fase 2).
   redirect: (context, state) {
     if (_publicPaths.contains(state.matchedLocation)) return null;
-    if (_tenantCubit.state is! TenantReady) return '/tenant/carregando';
+    if (_tenantCubit.state is! AdminTenantReady) return '/tenant/carregando';
     return null;
   },
   routes: [
@@ -88,11 +88,20 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/mapa',
-      builder: (context, state) => const MapMonitoringScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildBairrosCubit(),
+        child: const MapaHidrologicoScreen(),
+      ),
     ),
     GoRoute(
       path: '/mapa/bairro',
-      builder: (context, state) => const DetalheDoBairroScreen(),
+      // TODO(GEOPRAG-24): bairroId real virá da navegação quando
+      // toMapaBairro() passar argumento — mesma limitação já documentada
+      // em BairroDetalheCubit/AplicadorDetalheCubit.
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildBairroDetalheCubit('b1'),
+        child: const DetalheDoBairroScreen(),
+      ),
     ),
     GoRoute(
       path: '/aplicadores',
