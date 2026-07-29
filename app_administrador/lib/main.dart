@@ -104,19 +104,37 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/aplicacoes',
-      builder: (context, state) => const DashboardAplicacoesPage(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(),
+        child: const DashboardDeAplicacoesScreen(),
+      ),
     ),
     GoRoute(
       path: '/aplicacoes/bairro',
-      builder: (context, state) => const VisualizacaoBairroPage(),
+      // TODO(GEOPRAG-38): bairro real virá da navegação quando
+      // toAplicacaoBairro() passar argumento — mesma limitação já
+      // documentada em BairroDetalheCubit/AplicadorDetalheCubit.
+      builder: (context, state) => BlocProvider(
+        create: (_) =>
+            _bootstrap.buildPontosDeAplicacaoCubit(bairro: 'Belchior'),
+        child: const VisualizacaoDeBairroScreen(bairro: 'Belchior'),
+      ),
     ),
     GoRoute(
       path: '/aplicacoes/detalhes',
-      builder: (context, state) => const VisualizacaoDePontoDeAplicacaoScreen(),
+      // TODO(GEOPRAG-38): pontoId real virá da navegação quando
+      // toAplicacaoDetalhes() passar argumento — mesma limitação.
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildPontoDeAplicacaoDetalheCubit('1'),
+        child: const VisualizacaoDePontoDeAplicacaoScreen(),
+      ),
     ),
     GoRoute(
       path: '/aplicacoes/criar',
-      builder: (context, state) => const CriacaoDePontoScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarPontoCubit(),
+        child: const CriacaoDePontoScreen(),
+      ),
     ),
     GoRoute(
       path: '/estoque',
