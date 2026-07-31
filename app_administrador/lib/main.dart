@@ -19,7 +19,7 @@ const AdminBootstrap _bootstrap = AdminBootstrap();
 
 // TODO(GEOPRAG-24): tenant_id real vem do login (Fase 4/contrato de
 // endpoints); mockado aqui até o contrato ser fechado com o backend.
-final TenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
+final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
   ..load('gaspar-sc');
 
 // Sessão do administrador logado (GEOPRAG-36) — provida na raiz pelo mesmo
@@ -27,6 +27,14 @@ final TenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
 // `gerenciamento_de_administradores` precisa do cargo atual antes de
 // qualquer tela ser montada.
 final AdminSessionCubit _adminSessionCubit = _bootstrap.buildAdminSessionCubit();
+
+/// E-mail do Administrador logado — só chamado a partir de rotas
+/// `/administradores/*`, onde o `redirect` abaixo já garante
+/// [AdminSessionAutenticado].
+String _administradorLogadoEmail() {
+  final sessao = _adminSessionCubit.state;
+  return sessao is AdminSessionAutenticado ? sessao.conta.email : '';
+}
 
 const _publicPaths = {
   '/',
@@ -46,7 +54,7 @@ final GoRouter _router = GoRouter(
   // considera sempre autenticado. Guard de tenant abaixo já é real (Fase 2).
   redirect: (context, state) {
     if (_publicPaths.contains(state.matchedLocation)) return null;
-    if (_tenantCubit.state is! TenantReady) return '/tenant/carregando';
+    if (_tenantCubit.state is! AdminTenantReady) return '/tenant/carregando';
     // GEOPRAG-36: módulo restrito a quem tem cargo Administrador — front-end
     // apenas (validação em back-end é requisito documentado, não
     // implementável nesta sessão de trabalho, ver bootstrap.dart).
@@ -107,7 +115,7 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/mapa',
-      builder: (context, state) => const MapMonitoringScreen(),
+      builder: (context, state) => const MapaHidrologicoScreen(),
     ),
     GoRoute(
       path: '/mapa/bairro',
@@ -123,9 +131,32 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/administradores',
+      builder: (context, state) => MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => _bootstrap.buildAdministradoresCubit()),
+          BlocProvider(
+            create: (_) => _bootstrap.buildSolicitacoesPromocaoCubit(
+              _administradorLogadoEmail(),
+            ),
+          ),
+        ],
+        child: const DashboardAdministradoresScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/administradores/novo',
       builder: (context, state) => BlocProvider(
         create: (_) => _bootstrap.buildCriarAdministradorCubit(),
         child: const CriacaoDeAdministradorScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/administradores/solicitacoes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildSolicitacoesPromocaoCubit(
+          _administradorLogadoEmail(),
+        ),
+        child: const SolicitacoesPromocaoScreen(),
       ),
     ),
     GoRoute(
