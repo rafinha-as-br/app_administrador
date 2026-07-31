@@ -92,9 +92,9 @@ void main() {
       // Mesmo tentando ir direto pela URL, o guard de cargo redireciona de
       // volta ao dashboard geral.
       // `MaterialApp` cria o Router — seu próprio context fica ACIMA do
-    // InheritedGoRouter, então `GoRouter.of` só funciona a partir de um
-    // widget renderizado dentro da rota atual (ex.: o `Scaffold` da tela).
-    final context = tester.element(find.byType(Scaffold).first);
+      // InheritedGoRouter, então `GoRouter.of` só funciona a partir de um
+      // widget renderizado dentro da rota atual (ex.: o `Scaffold` da tela).
+      final context = tester.element(find.byType(Scaffold).first);
       GoRouter.of(context).go('/administradores');
       await tester.pumpAndSettle();
       expect(find.text('Administradores Cadastrados'), findsNothing);
@@ -109,9 +109,9 @@ void main() {
       String tituloEsperado,
     ) async {
       // `MaterialApp` cria o Router — seu próprio context fica ACIMA do
-    // InheritedGoRouter, então `GoRouter.of` só funciona a partir de um
-    // widget renderizado dentro da rota atual (ex.: o `Scaffold` da tela).
-    final context = tester.element(find.byType(Scaffold).first);
+      // InheritedGoRouter, então `GoRouter.of` só funciona a partir de um
+      // widget renderizado dentro da rota atual (ex.: o `Scaffold` da tela).
+      final context = tester.element(find.byType(Scaffold).first);
       GoRouter.of(context).go(rota);
       await tester.pumpAndSettle();
       expect(
@@ -138,11 +138,7 @@ void main() {
         await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
 
         await verificaRota(tester, '/dashboard', 'Visão Geral');
-        await verificaRota(
-          tester,
-          '/mapa',
-          'Mapa Hidrológico e Monitoramento',
-        );
+        await verificaRota(tester, '/mapa', 'Mapa Hidrológico e Monitoramento');
         await verificaRota(tester, '/aplicadores', 'Gestão de Aplicadores');
         await verificaRota(tester, '/estoque', 'Controle de Estoque e Compras');
         await verificaRota(
@@ -164,6 +160,63 @@ void main() {
       },
     );
   });
+
+  testWidgets(
+    'clicar na linha do usuário abre o dialog de detalhes com as ações, e desativar/reativar funciona',
+    (tester) async {
+      await _pumpApp(tester);
+      await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
+
+      final context = tester.element(find.byType(Scaffold).first);
+      GoRouter.of(context).go('/administradores');
+      await tester.pumpAndSettle();
+
+      // Clica na linha da Célia Ramos (Sub-Administrador ativa por padrão).
+      await tester.tap(find.text('Célia Ramos'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byType(Dialog),
+        findsOneWidget,
+        reason: 'o dialog deveria ter aberto',
+      );
+      expect(find.text('Sub-Administrador'), findsWidgets);
+      // ElevatedButton.icon/OutlinedButton.icon retornam uma subclasse
+      // privada (não `ElevatedButton`/`OutlinedButton` em runtimeType), por
+      // isso os asserts usam o texto do rótulo em vez de
+      // `widgetWithText(ElevatedButton, ...)`.
+      expect(find.text('Desativar'), findsOneWidget);
+      expect(find.text('Promover a Administrador'), findsOneWidget);
+      expect(find.text('Reativar'), findsNothing);
+      expect(find.textContaining('desativado desde'), findsNothing);
+
+      // Desativa pelo dialog.
+      await tester.tap(find.text('Desativar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Desativar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Cadastro desativado com sucesso.'), findsOneWidget);
+
+      // Reabre a linha: agora deve mostrar o indicador e o botão de
+      // reativar no lugar do de desativar.
+      await tester.tap(find.text('Célia Ramos'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Reativar'), findsOneWidget);
+      expect(find.text('Desativar'), findsNothing);
+      expect(find.text('Promover a Administrador'), findsNothing);
+      expect(find.textContaining('desativado desde'), findsOneWidget);
+
+      // `mockAdminAccounts` é um singleton compartilhado entre os testes
+      // deste arquivo — reativa a Célia de volta para não vazar estado
+      // para os testes seguintes.
+      await tester.tap(find.text('Reativar'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(TextButton, 'Reativar'));
+      await tester.pumpAndSettle();
+    },
+  );
 
   testWidgets('sidebar não fica coberta por uma AppBar de largura total', (
     tester,

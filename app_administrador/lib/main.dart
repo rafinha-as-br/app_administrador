@@ -26,7 +26,8 @@ final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
 // motivo do _tenantCubit acima: o guard de rota do módulo
 // `gerenciamento_de_administradores` precisa do cargo atual antes de
 // qualquer tela ser montada.
-final AdminSessionCubit _adminSessionCubit = _bootstrap.buildAdminSessionCubit();
+final AdminSessionCubit _adminSessionCubit = _bootstrap
+    .buildAdminSessionCubit();
 
 /// E-mail do Administrador logado — só chamado a partir de rotas
 /// `/administradores/*`, onde o `redirect` abaixo já garante
