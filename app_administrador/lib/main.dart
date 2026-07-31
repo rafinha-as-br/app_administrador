@@ -49,12 +49,20 @@ const _publicPaths = {
 
 final GoRouter _router = GoRouter(
   initialLocation: '/',
-  refreshListenable: GoRouterRefreshStream(_tenantCubit.stream),
-  // TODO(GEOPRAG-24): guard de auth real vem da Fase 3/4 (AuthBloc); por ora
-  // considera sempre autenticado. Guard de tenant abaixo já é real (Fase 2).
+  refreshListenable: Listenable.merge([
+    GoRouterRefreshStream(_tenantCubit.stream),
+    GoRouterRefreshStream(_adminSessionCubit.stream),
+  ]),
   redirect: (context, state) {
     if (_publicPaths.contains(state.matchedLocation)) return null;
     if (_tenantCubit.state is! AdminTenantReady) return '/tenant/carregando';
+    // Guard geral de sessão: em Flutter web a URL do navegador sobrevive a
+    // um hot restart (que reseta o AdminSessionCubit para SemAcesso), então
+    // sem este guard uma rota protegida abriria "deslogada por baixo" —
+    // tela renderiza normal, mas qualquer coisa que dependa da sessão real
+    // (ex.: item de menu do Administrador) fica incoerente com o que a URL
+    // sugere. Só as rotas em `_publicPaths` dispensam sessão.
+    if (_adminSessionCubit.state is! AdminSessionAutenticado) return '/';
     // GEOPRAG-36: módulo restrito a quem tem cargo Administrador — front-end
     // apenas (validação em back-end é requisito documentado, não
     // implementável nesta sessão de trabalho, ver bootstrap.dart).
@@ -88,7 +96,10 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/senha/autorizar',
-      builder: (context, state) => const AutorizacaoRedefinicaoScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAutorizacaoRedefinicaoCubit(),
+        child: const AutorizacaoRedefinicaoScreen(),
+      ),
     ),
     GoRoute(
       path: '/senha/codigo-subadmin',
@@ -111,23 +122,42 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/dashboard',
-      builder: (context, state) => const DashboardGeralScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDashboardGeralCubit(),
+        child: const DashboardGeralScreen(),
+      ),
     ),
     GoRoute(
       path: '/mapa',
-      builder: (context, state) => const MapaHidrologicoScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildBairrosCubit(),
+        child: const MapaHidrologicoScreen(),
+      ),
     ),
     GoRoute(
       path: '/mapa/bairro',
-      builder: (context, state) => const DetalheDoBairroScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildBairroDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const DetalheDoBairroScreen(),
+      ),
     ),
     GoRoute(
       path: '/aplicadores',
-      builder: (context, state) => const DashboardAplicadoresScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAplicadoresCubit(),
+        child: const DashboardAplicadoresScreen(),
+      ),
     ),
     GoRoute(
       path: '/aplicadores/detalhes',
-      builder: (context, state) => const VisualizacaoIndividualScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAplicadorDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoIndividualScreen(),
+      ),
     ),
     GoRoute(
       path: '/administradores',
@@ -161,7 +191,10 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/estoque',
-      builder: (context, state) => const DashboardEstoqueScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildProdutosCubit(),
+        child: const DashboardEstoqueScreen(),
+      ),
     ),
     GoRoute(
       path: '/estoque/formula',
@@ -173,31 +206,58 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/estoque/produto',
-      builder: (context, state) => const CadastroProdutoScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildProdutosCubit(),
+        child: const CadastroProdutoScreen(),
+      ),
     ),
     GoRoute(
       path: '/estoque/visualizacao',
-      builder: (context, state) => const VisualizacaoProdutoScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildProdutoDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoProdutoScreen(),
+      ),
     ),
     GoRoute(
       path: '/distribuicoes',
-      builder: (context, state) => const DashboardDistribuicoesScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDistribuicoesCubit(),
+        child: const DashboardDistribuicoesScreen(),
+      ),
     ),
     GoRoute(
       path: '/distribuicoes/cadastro',
-      builder: (context, state) => const CadastroSaidaScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCadastroSaidaCubit(),
+        child: const CadastroSaidaScreen(),
+      ),
     ),
     GoRoute(
       path: '/distribuicoes/visualizacao',
-      builder: (context, state) => const VisualizacaoSaidaScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDistribuicaoDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoSaidaScreen(),
+      ),
     ),
     GoRoute(
       path: '/denuncias_admin',
-      builder: (context, state) => const DashboardDenunciasAdminScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDenunciasCubit(),
+        child: const DashboardDenunciasAdminScreen(),
+      ),
     ),
     GoRoute(
       path: '/denuncias_admin/detalhes',
-      builder: (context, state) => const VisualizacaoIndividualDenunciaScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDenunciaDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoIndividualDenunciaScreen(),
+      ),
     ),
   ],
 );
