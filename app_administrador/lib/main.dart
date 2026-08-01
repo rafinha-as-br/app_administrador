@@ -283,6 +283,7 @@ class AppAdministrador extends StatelessWidget {
         title: 'GeoPrag - Admin',
         theme: GeopragTheme.light(),
         routerConfig: _router,
+        debugShowCheckedModeBanner: false,
         builder: (context, child) => AdminNavigatorScope(
           navigator: AdminGoRouterNavigator(_router),
           child: child!,
