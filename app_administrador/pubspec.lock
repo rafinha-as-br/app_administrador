@@ -115,7 +115,7 @@ packages:
   geoprag_modules:
     dependency: "direct main"
     description:
-      path: "../../geoprag_modules/geoprag_modules"
+      path: "../../geoprag_modules/geoprag_modules_project"
       relative: true
     source: path
     version: "1.0.0"
