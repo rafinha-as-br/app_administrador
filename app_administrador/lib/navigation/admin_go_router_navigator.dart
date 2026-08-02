@@ -42,6 +42,8 @@ class AdminGoRouterNavigator implements AdminNavigator {
       queryParameters: {'id': aplicadorId},
     ).toString(),
   );
+  @override
+  void toCriarAplicador() => _router.push('/aplicadores/novo');
 
   @override
   void toGerenciamentoAdministradores() =>
