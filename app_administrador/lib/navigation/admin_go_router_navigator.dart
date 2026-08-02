@@ -42,8 +42,15 @@ class AdminGoRouterNavigator implements AdminNavigator {
       queryParameters: {'id': aplicadorId},
     ).toString(),
   );
+  // GEOPRAG-65 (review Rafinha, 2026-08-02): pushReplacement, não push — a
+  // tela de cadastro é um destino de topo alcançado a partir do dashboard,
+  // não uma sub-rota aninhada. Usar push aqui quebrava a invariante de pilha
+  // plana das demais rotas de menu (todas pushReplacement): ao navegar pelo
+  // sidebar a partir da tela de cadastro e depois voltar para "aplicadores",
+  // sobrava um frame duplicado do dashboard na pilha, fazendo a AppBar
+  // exibir um botão de voltar espúrio.
   @override
-  void toCriarAplicador() => _router.push('/aplicadores/novo');
+  void toCriarAplicador() => _router.pushReplacement('/aplicadores/novo');
 
   @override
   void toGerenciamentoAdministradores() =>

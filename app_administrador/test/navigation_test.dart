@@ -240,4 +240,62 @@ void main() {
     expect(find.byType(AppBar), findsOneWidget);
     expect(find.byType(Scaffold), findsNWidgets(2));
   });
+
+  testWidgets(
+    'GEOPRAG-65 (review Rafinha): navegar pelo menu a partir da tela de '
+    'cadastro de Aplicador não deixa a pilha de rotas duplicada',
+    (tester) async {
+      await _pumpApp(tester);
+      await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
+
+      final context = tester.element(find.byType(Scaffold).first);
+      GoRouter.of(context).go('/aplicadores');
+      await tester.pumpAndSettle();
+
+      // Abre o cadastro pelo botão "Novo Aplicador" (não por `.go()`
+      // direto) — é `toCriarAplicador()`, via `AdminNavigator`, quem
+      // continha o bug de empilhamento. `ElevatedButton.icon` retorna uma
+      // subclasse privada (não `ElevatedButton` em runtimeType), por isso
+      // o tap usa o texto do rótulo.
+      await tester.tap(find.text('Novo Aplicador'));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Novo Aplicador'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byType(BackButton),
+        findsNothing,
+        reason:
+            'tela de cadastro é um destino de topo (pushReplacement), não '
+            'deveria ter botão de voltar',
+      );
+
+      // Navega para outra seção pelo menu lateral e depois volta para
+      // "Aplicadores" — reproduz o cenário relatado na review.
+      await tester.tap(find.widgetWithText(ListTile, 'Estoque e Compras'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Aplicadores'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Gestão de Aplicadores'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byType(BackButton),
+        findsNothing,
+        reason:
+            'voltar para "Aplicadores" pelo menu não deveria deixar um '
+            'frame duplicado do dashboard na pilha (bug relatado na review '
+            'do PR #12)',
+      );
+    },
+  );
 }
