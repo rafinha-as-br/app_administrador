@@ -157,6 +157,15 @@ void main() {
           '/administradores/solicitacoes',
           'Solicitações de Promoção',
         );
+        // Feedback de revisão do PR #9: esta tela deixou de abrir como um
+        // Scaffold isolado (tela cheia) e passou a usar AdminScaffold, como
+        // as demais rotas do módulo — precisa continuar abrindo com o
+        // sidebar comum, sem lançar exceção.
+        await verificaRota(
+          tester,
+          '/administradores/novo',
+          'Registrar Novo Administrador',
+        );
       },
     );
   });
