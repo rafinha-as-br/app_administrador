@@ -42,12 +42,23 @@ class AdminGoRouterNavigator implements AdminNavigator {
       queryParameters: {'id': aplicadorId},
     ).toString(),
   );
+  // GEOPRAG-65: destino de topo (não sub-rota) alcançado pelo botão "Novo
+  // Aplicador" do dashboard — precisa existir aqui porque o merge de
+  // GEOPRAG-65 em GEOPRAG-68 (geoprag_modules) trouxe o método para a
+  // interface AdminNavigator; sem esta implementação o botão navegaria
+  // para uma rota inexistente nesta branch.
+  @override
+  void toCriarAplicador() => _router.pushReplacement('/aplicadores/novo');
 
   @override
   void toGerenciamentoAdministradores() =>
       _router.pushReplacement('/administradores');
+  // GEOPRAG-68 (review Rafinha, PR #13): mesmo fix da GEOPRAG-65 —
+  // pushReplacement, não push. Ver toCriarAplicador() acima para o
+  // diagnóstico completo do bug de pilha duplicada.
   @override
-  void toCriarAdministrador() => _router.push('/administradores/novo');
+  void toCriarAdministrador() =>
+      _router.pushReplacement('/administradores/novo');
   @override
   void toSolicitacoesPromocaoAdministrador() =>
       _router.push('/administradores/solicitacoes');
