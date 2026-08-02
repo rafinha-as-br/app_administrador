@@ -31,7 +31,7 @@ dependencies:
   flutter:
     sdk: flutter
   geoprag_modules:
-    path: ../../geoprag_modules/geoprag_modules_project
+    path: ../../geoprag_modules/geoprag_modules
   go_router: ^17.2.3
   flutter_bloc: ^9.1.1
 
