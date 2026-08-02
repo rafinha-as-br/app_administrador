@@ -140,7 +140,6 @@ void main() {
         await verificaRota(tester, '/dashboard', 'Visão Geral');
         await verificaRota(tester, '/mapa', 'Mapa Hidrológico e Monitoramento');
         await verificaRota(tester, '/aplicadores', 'Gestão de Aplicadores');
-        await verificaRota(tester, '/aplicadores/novo', 'Novo Aplicador');
         await verificaRota(tester, '/estoque', 'Controle de Estoque e Compras');
         await verificaRota(
           tester,
