@@ -47,10 +47,11 @@ class AdminGoRouterNavigator implements AdminNavigator {
   void toGerenciamentoAdministradores() =>
       _router.pushReplacement('/administradores');
   @override
-  void toCriarAdministrador() => _router.push('/administradores/novo');
+  Future<void> toCriarAdministrador() async =>
+      await _router.push('/administradores/novo');
   @override
-  void toSolicitacoesPromocaoAdministrador() =>
-      _router.push('/administradores/solicitacoes');
+  Future<void> toSolicitacoesPromocaoAdministrador() async =>
+      await _router.push('/administradores/solicitacoes');
 
   @override
   void toEstoque() => _router.pushReplacement('/estoque');
