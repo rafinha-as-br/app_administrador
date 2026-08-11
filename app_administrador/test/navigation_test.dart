@@ -227,6 +227,85 @@ void main() {
     },
   );
 
+  testWidgets(
+    'GEOPRAG-67: selecionar linhas em sequência não desloca a posição de '
+    'tela das demais linhas (a barra de ação em massa fica abaixo da '
+    'tabela, nunca acima)',
+    (tester) async {
+      await _pumpApp(tester);
+      await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
+
+      tester.view.physicalSize = const Size(1440, 1400);
+      addTearDown(tester.view.resetPhysicalSize);
+
+      final context = tester.element(find.byType(Scaffold).first);
+      GoRouter.of(context).go('/aplicadores');
+      await tester.pumpAndSettle();
+
+      final checkboxes = find.byType(Checkbox);
+      expect(checkboxes, findsNWidgets(6));
+
+      // Posições de tela (não Finders semânticos) capturadas ANTES de
+      // qualquer seleção — é isso que um clique real de mouse usa: uma
+      // coordenada fixa, não "ache o widget de novo depois que a tela
+      // mudou". `tester.tap(finder)` sempre re-localiza o widget atual e
+      // por isso não reproduzia o bug original (a barra de ação em massa
+      // aparecendo ACIMA da tabela empurrava as linhas para baixo, então a
+      // mesma coordenada de um clique seguinte passava a apontar para
+      // outro elemento — reproduzido e corrigido nesta issue, QA
+      // GEOPRAG-TC-11).
+      final posicaoLinha1 = tester.getCenter(checkboxes.at(1)); // João
+      final posicaoLinha2 = tester.getCenter(checkboxes.at(2)); // Maria
+
+      await tester.tapAt(posicaoLinha1);
+      await tester.pumpAndSettle();
+      await tester.tapAt(posicaoLinha2);
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 selecionado(s)'), findsOneWidget);
+      final valoresAposDuasSelecoes = tester
+          .widgetList<Checkbox>(checkboxes)
+          .map((c) => c.value)
+          .toList();
+      expect(valoresAposDuasSelecoes[0], isFalse, reason: 'select-all');
+      expect(valoresAposDuasSelecoes[1], isTrue, reason: 'João');
+      expect(valoresAposDuasSelecoes[2], isTrue, reason: 'Maria');
+      expect(
+        valoresAposDuasSelecoes.sublist(3),
+        everyElement(isFalse),
+        reason: 'as demais linhas não deveriam ter sido selecionadas',
+      );
+
+      // Limpa e repete na ordem inversa (linha 2 primeiro, depois linha 1)
+      // — segundo cenário reproduzido no QA GEOPRAG-TC-11.
+      await tester.tap(find.widgetWithText(TextButton, 'Limpar seleção'));
+      await tester.pumpAndSettle();
+
+      await tester.tapAt(posicaoLinha2);
+      await tester.pumpAndSettle();
+      await tester.tapAt(posicaoLinha1);
+      await tester.pumpAndSettle();
+
+      expect(find.text('2 selecionado(s)'), findsOneWidget);
+      final valoresOrdemInversa = tester
+          .widgetList<Checkbox>(checkboxes)
+          .map((c) => c.value)
+          .toList();
+      expect(
+        valoresOrdemInversa[0],
+        isFalse,
+        reason: 'select-all não deveria ter sido marcado',
+      );
+      expect(valoresOrdemInversa[1], isTrue, reason: 'João');
+      expect(valoresOrdemInversa[2], isTrue, reason: 'Maria');
+      expect(
+        valoresOrdemInversa.sublist(3),
+        everyElement(isFalse),
+        reason: 'as demais linhas não deveriam ter sido selecionadas',
+      );
+    },
+  );
+
   testWidgets('sidebar não fica coberta por uma AppBar de largura total', (
     tester,
   ) async {
