@@ -29,12 +29,29 @@ class AdminGoRouterNavigator implements AdminNavigator {
   @override
   void toMapa() => _router.pushReplacement('/mapa');
   @override
-  void toMapaBairro() => _router.push('/mapa/bairro');
+  void toMapaBairro(String bairroId) => _router.push(
+    Uri(path: '/mapa/bairro', queryParameters: {'id': bairroId}).toString(),
+  );
 
   @override
   void toAplicadores() => _router.pushReplacement('/aplicadores');
   @override
-  void toAplicadorDetalhes() => _router.push('/aplicadores/detalhes');
+  void toAplicadorDetalhes(String aplicadorId) => _router.push(
+    Uri(
+      path: '/aplicadores/detalhes',
+      queryParameters: {'id': aplicadorId},
+    ).toString(),
+  );
+
+  @override
+  void toGerenciamentoAdministradores() =>
+      _router.pushReplacement('/administradores');
+  @override
+  Future<void> toCriarAdministrador() async =>
+      await _router.push('/administradores/novo');
+  @override
+  Future<void> toSolicitacoesPromocaoAdministrador() async =>
+      await _router.push('/administradores/solicitacoes');
 
   @override
   void toEstoque() => _router.pushReplacement('/estoque');
@@ -45,20 +62,34 @@ class AdminGoRouterNavigator implements AdminNavigator {
   @override
   void toEstoqueProduto() => _router.push('/estoque/produto');
   @override
-  void toEstoqueVisualizacao() => _router.push('/estoque/visualizacao');
+  void toEstoqueVisualizacao(String produtoId) => _router.push(
+    Uri(
+      path: '/estoque/visualizacao',
+      queryParameters: {'id': produtoId},
+    ).toString(),
+  );
 
   @override
   void toDistribuicoes() => _router.pushReplacement('/distribuicoes');
   @override
   void toDistribuicaoCadastro() => _router.push('/distribuicoes/cadastro');
   @override
-  void toDistribuicaoVisualizacao() =>
-      _router.push('/distribuicoes/visualizacao');
+  void toDistribuicaoVisualizacao(String distribuicaoId) => _router.push(
+    Uri(
+      path: '/distribuicoes/visualizacao',
+      queryParameters: {'id': distribuicaoId},
+    ).toString(),
+  );
 
   @override
   void toDenunciasAdmin() => _router.pushReplacement('/denuncias_admin');
   @override
-  void toDenunciaAdminDetalhes() => _router.push('/denuncias_admin/detalhes');
+  void toDenunciaAdminDetalhes(String denunciaId) => _router.push(
+    Uri(
+      path: '/denuncias_admin/detalhes',
+      queryParameters: {'id': denunciaId},
+    ).toString(),
+  );
 
   @override
   void toLogout() => _router.pushReplacement('/');
