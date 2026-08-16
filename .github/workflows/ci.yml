@@ -47,10 +47,6 @@ jobs:
         run: flutter analyze --no-fatal-infos
 
       - name: Run tests
-        # TODO: tirar o continue-on-error quando o teste hoje quebrado em
-        # navigation_test.dart (GEOPRAG-65 - rota duplicada no menu a partir
-        # do cadastro de Aplicador) for corrigido.
-        continue-on-error: true
         run: flutter test
 
       - name: Build web
