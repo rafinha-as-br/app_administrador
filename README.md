@@ -59,3 +59,14 @@ dependencies:
 ```
 
 **Nunca commite essa troca.** A pipeline de CI falha (job `guard`) se detectar `path:` na entrada de `geoprag_modules` — desfaça antes de dar push.
+
+## CI (GitHub Actions)
+
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+- **Triggers**: Pull Request para `develop`/`main`; push em `develop`
+- **Job `guard`**: falha se detectar dependência via path local (`../`) no `pubspec.yaml` — pega de volta qualquer troca de dev local esquecida antes do push
+- **Job `quality-gates`** (depende do `guard`): checkout → Flutter 3.35.5 → `flutter pub get` → `flutter analyze --no-fatal-infos` → `flutter test` → `flutter build web`
+- **Gates obrigatórios (bloqueiam merge)**: `guard`, `flutter analyze` (erros e warnings; infos não bloqueiam), `flutter build web`
+- **Não bloqueia ainda**: `flutter test` roda e reporta, mas não derruba o job (`continue-on-error: true`). Motivo: `navigation_test.dart` tem 1 teste hoje falhando na própria `develop` (GEOPRAG-65 — rota duplicada no menu a partir do cadastro de Aplicador), sem relação com este setup de CI. Assim que corrigido, remover o `continue-on-error` e marcar `test` como check obrigatório na branch protection.
+- Não builda mobile (Android/iOS): este app é o portal web de administração, sem alvo mobile real.
