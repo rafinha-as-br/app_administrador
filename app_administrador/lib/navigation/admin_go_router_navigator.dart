@@ -1,10 +1,30 @@
 import 'package:geoprag_modules/geoprag_modules.dart';
 import 'package:go_router/go_router.dart';
 
-/// Implementação de [AdminNavigator] usando `go_router`. Reproduz a
-/// semântica (push vs. replace vs. limpar pilha) das chamadas
-/// `Navigator.push*`/`pop` que existiam hardcoded nas telas antes da
-/// extração para a interface de navegação (GEOPRAG-24 Fase 1).
+/// Implementação de [AdminNavigator] usando `go_router`.
+///
+/// **Padrão único de navegação (GEOPRAG-72):** toda tela pós-login do
+/// Portal Administrador — dashboards de módulo e as sub-rotas de
+/// detalhe/cadastro dentro de cada um — é alcançada por [pushReplacement],
+/// nunca [push]. A pilha interna do `Navigator` fica sempre com 1 nível,
+/// então nenhuma tela pós-login depende de um botão de voltar in-app
+/// (`BackButton`/`AppBar` não o exibe quando não há o que popar) — só do
+/// botão voltar do navegador, que continua funcionando porque o `go_router`
+/// atualiza a URL a cada `pushReplacement`. Consequência direta: uma tela
+/// alcançada assim nunca deve chamar [back] para "retornar" — ela navega
+/// explicitamente para o destino pretendido (ex.: `toAplicadores()`), já
+/// que não há mais frame anterior para popar (era exatamente esse
+/// descompasso — rota de cadastro com `push` porém `AdminNavigator.back()`
+/// no retorno de sucesso — que causava pilha duplicada; ver
+/// `toCriarAplicador`/`toCriarAdministrador`, primeiros casos corrigidos
+/// nas GEOPRAG-65/68, e o mesmo fix agora replicado em todas as demais
+/// sub-rotas do Portal Administrador).
+///
+/// Exceção deliberada: o fluxo de recuperação de senha (`/senha/*`), que
+/// roda **antes** do login, continua usando `push`/[back] — é um wizard
+/// linear de passos onde voltar de verdade (não só reiniciar do zero) é o
+/// comportamento esperado, e não faz parte de nenhum módulo do Portal
+/// Administrador propriamente dito.
 class AdminGoRouterNavigator implements AdminNavigator {
   AdminGoRouterNavigator(this._router);
 
@@ -29,14 +49,14 @@ class AdminGoRouterNavigator implements AdminNavigator {
   @override
   void toMapa() => _router.pushReplacement('/mapa');
   @override
-  void toMapaBairro(String bairroId) => _router.push(
+  void toMapaBairro(String bairroId) => _router.pushReplacement(
     Uri(path: '/mapa/bairro', queryParameters: {'id': bairroId}).toString(),
   );
 
   @override
   void toAplicadores() => _router.pushReplacement('/aplicadores');
   @override
-  void toAplicadorDetalhes(String aplicadorId) => _router.push(
+  void toAplicadorDetalhes(String aplicadorId) => _router.pushReplacement(
     Uri(
       path: '/aplicadores/detalhes',
       queryParameters: {'id': aplicadorId},
@@ -57,21 +77,21 @@ class AdminGoRouterNavigator implements AdminNavigator {
       _router.pushReplacement('/administradores');
   @override
   Future<void> toCriarAdministrador() async =>
-      await _router.push('/administradores/novo');
+      await _router.pushReplacement('/administradores/novo');
   @override
   Future<void> toSolicitacoesPromocaoAdministrador() async =>
-      await _router.push('/administradores/solicitacoes');
+      await _router.pushReplacement('/administradores/solicitacoes');
 
   @override
   void toEstoque() => _router.pushReplacement('/estoque');
   @override
-  void toEstoqueFormula() => _router.push('/estoque/formula');
+  void toEstoqueFormula() => _router.pushReplacement('/estoque/formula');
   @override
-  void toEstoqueLicitacao() => _router.push('/estoque/licitacao');
+  void toEstoqueLicitacao() => _router.pushReplacement('/estoque/licitacao');
   @override
-  void toEstoqueProduto() => _router.push('/estoque/produto');
+  void toEstoqueProduto() => _router.pushReplacement('/estoque/produto');
   @override
-  void toEstoqueVisualizacao(String produtoId) => _router.push(
+  void toEstoqueVisualizacao(String produtoId) => _router.pushReplacement(
     Uri(
       path: '/estoque/visualizacao',
       queryParameters: {'id': produtoId},
@@ -81,19 +101,21 @@ class AdminGoRouterNavigator implements AdminNavigator {
   @override
   void toDistribuicoes() => _router.pushReplacement('/distribuicoes');
   @override
-  void toDistribuicaoCadastro() => _router.push('/distribuicoes/cadastro');
+  void toDistribuicaoCadastro() =>
+      _router.pushReplacement('/distribuicoes/cadastro');
   @override
-  void toDistribuicaoVisualizacao(String distribuicaoId) => _router.push(
-    Uri(
-      path: '/distribuicoes/visualizacao',
-      queryParameters: {'id': distribuicaoId},
-    ).toString(),
-  );
+  void toDistribuicaoVisualizacao(String distribuicaoId) =>
+      _router.pushReplacement(
+        Uri(
+          path: '/distribuicoes/visualizacao',
+          queryParameters: {'id': distribuicaoId},
+        ).toString(),
+      );
 
   @override
   void toDenunciasAdmin() => _router.pushReplacement('/denuncias_admin');
   @override
-  void toDenunciaAdminDetalhes(String denunciaId) => _router.push(
+  void toDenunciaAdminDetalhes(String denunciaId) => _router.pushReplacement(
     Uri(
       path: '/denuncias_admin/detalhes',
       queryParameters: {'id': denunciaId},

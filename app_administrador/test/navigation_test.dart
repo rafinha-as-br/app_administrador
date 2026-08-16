@@ -320,6 +320,64 @@ void main() {
   });
 
   testWidgets(
+    'GEOPRAG-68 (review Rafinha): navegar pelo menu a partir da tela de '
+    'cadastro de Administrador não deixa a pilha de rotas duplicada',
+    (tester) async {
+      await _pumpApp(tester);
+      await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
+
+      final context = tester.element(find.byType(Scaffold).first);
+      GoRouter.of(context).go('/administradores');
+      await tester.pumpAndSettle();
+
+      // Abre o cadastro pelo botão "Novo Administrador" (não por `.go()`
+      // direto) — é `toCriarAdministrador()`, via `AdminNavigator`, quem
+      // continha o bug de empilhamento (mesmo padrão da GEOPRAG-65).
+      await tester.tap(find.text('Novo Administrador'));
+      await tester.pumpAndSettle();
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Registrar Novo Administrador'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byType(BackButton),
+        findsNothing,
+        reason:
+            'tela de cadastro é um destino de topo (pushReplacement), não '
+            'deveria ter botão de voltar',
+      );
+
+      // Navega para outra seção pelo menu lateral e depois volta para
+      // "Gerenciamento de Administradores".
+      await tester.tap(find.widgetWithText(ListTile, 'Estoque e Compras'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.widgetWithText(ListTile, 'Gerenciamento de Administradores'),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Gerenciamento de Administradores'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byType(BackButton),
+        findsNothing,
+        reason:
+            'voltar para "Gerenciamento de Administradores" pelo menu não '
+            'deveria deixar um frame duplicado do dashboard na pilha (bug '
+            'relatado na review do PR #13)',
+      );
+    },
+  );
+
+  testWidgets(
     'GEOPRAG-65 (review Rafinha): navegar pelo menu a partir da tela de '
     'cadastro de Aplicador não deixa a pilha de rotas duplicada',
     (tester) async {
