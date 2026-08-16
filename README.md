@@ -6,7 +6,7 @@ Aplicativo **Flutter Web** do Geoprag destinado aos **administradores/servidores
 
 O `app_administrador` é o portal web usado pela equipe administrativa para acompanhar em tempo real o trabalho dos aplicadores de campo, gerenciar estoque e distribuição de insumos, monitorar focos de dengue via mapa e tratar denúncias enviadas pela população ou pelos aplicadores.
 
-Este repositório contém apenas a **aplicação Flutter Web** (o "shell" do app: navegação, integração com a API e composição das telas). As telas, widgets e regras de cada módulo funcional vêm do pacote compartilhado [`geoprag_modules`](../geoprag_modules), consumido via dependência local (`path: ../../geoprag_modules/geoprag_modules`).
+Este repositório contém apenas a **aplicação Flutter Web** (o "shell" do app: navegação, integração com a API e composição das telas). As telas, widgets e regras de cada módulo funcional vêm do pacote compartilhado [`geoprag_modules`](../geoprag_modules), consumido via dependência git (branch `develop`) — ver [Desenvolvimento local com `geoprag_modules`](#desenvolvimento-local-com-geoprag_modules) abaixo.
 
 ## Funcionalidades (via `geoprag_modules/portal_administrador`)
 
@@ -36,7 +36,7 @@ app_administrador/
 ## Dependências principais
 
 - Flutter (SDK `^3.9.2`)
-- `geoprag_modules` (path dependency, pacote compartilhado de UI e regras de módulos)
+- `geoprag_modules` (git dependency, apontando pra `develop` — pacote compartilhado de UI e regras de módulos)
 
 ## Como rodar
 
@@ -45,3 +45,47 @@ cd app_administrador
 flutter pub get
 flutter run -d chrome
 ```
+
+## Desenvolvimento local com `geoprag_modules`
+
+O `pubspec.yaml` aponta `geoprag_modules` como dependência git (`ref: develop`), não path local — isso garante que CI e todo mundo no time sempre resolvem a mesma versão de verdade, publicada no repositório.
+
+Se você está desenvolvendo uma mudança em `geoprag_modules` em paralelo e precisa testá-la aqui **antes de commitar/subir** essa mudança, troque temporariamente a entrada no `pubspec.yaml`:
+
+```yaml
+dependencies:
+  geoprag_modules:
+    path: ../../geoprag_modules/geoprag_modules_project
+```
+
+**Nunca commite essa troca.** A pipeline de CI falha (job `guard`) se detectar `path:` na entrada de `geoprag_modules` — desfaça antes de dar push.
+
+## Convenção de branch
+
+```
+{tipo}/{CHAVE-DA-ISSUE}-claude
+```
+
+Exemplo: `feat/GEOPRAG-68-claude`. A chave da issue no nome é o que permite a integração nativa GitHub-Jira detectar automaticamente o vínculo entre branch/commit/PR e a issue no Jira. `develop` é a branch de integração (é para onde o merge acontece depois que a pipeline passa); `main` fica reservada para produção/release.
+
+## CI (GitHub Actions)
+
+Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
+
+- **Triggers**: Pull Request para `develop`/`main`; push em `develop`
+- **Job `Guard - geoprag_modules deve ser git dependency`**: falha se detectar dependência via path local (`../`) no `pubspec.yaml` — pega de volta qualquer troca de dev local esquecida antes do push
+- **Job `Analyze, test & build web`** (depende do guard): checkout → Flutter 3.35.5 → `flutter pub get` → `flutter analyze --no-fatal-infos` → `flutter test` → `flutter build web`
+- **Gates obrigatórios (bloqueiam merge)**: os dois jobs acima (guard sempre; no segundo, `flutter analyze` — erros e warnings, infos não bloqueiam — e `flutter build web`)
+- **Não bloqueia ainda**: `flutter test` roda e reporta, mas não derruba o job (`continue-on-error: true`). Motivo: `navigation_test.dart` tem 1 teste hoje falhando na própria `develop` (GEOPRAG-65 — rota duplicada no menu a partir do cadastro de Aplicador), sem relação com este setup de CI. Assim que corrigido, remover o `continue-on-error` e marcar `test` como check obrigatório na branch protection.
+- Não builda mobile (Android/iOS): este app é o portal web de administração, sem alvo mobile real.
+- **Branch protection na `develop`**: ativa, exige os dois jobs acima passando + branch atualizada com a `develop` antes do merge (`strict: true`). `enforce_admins` está desligado — o dono do repo ainda consegue fazer bypass numa emergência, mas o fluxo normal (PR + merge automatizado) sempre passa pelos checks.
+
+## Release & Versionamento
+
+Ciclo de entrega separado do dia a dia de merges em `develop` — ver [Release & Versionamento](https://rafinha84dev.atlassian.net/wiki/spaces/CS1/pages/44335153) no Confluence para o conceito completo. Executado sob demanda por `jira-release-executor`, nunca automaticamente.
+
+- **Versão**: `version:` no `pubspec.yaml` (`X.Y.Z+build`, SemVer). Hoje em `0.1.0+1` — projeto em desenvolvimento inicial.
+- **Changelog**: [`CHANGELOG.md`](CHANGELOG.md), formato Keep a Changelog.
+- **Estratégia de branch**: sem branch de release dedicada por enquanto — `develop → main` direto via PR quando uma release for cortada. `release/X.Y.Z` fica reservada pra quando o projeto precisar de uma janela de estabilização (Release Candidate) antes do merge pra `main`.
+- **Pipeline**: [`.github/workflows/release.yml`](.github/workflows/release.yml), trigger em push de tag `v*`. Roda `analyze` + `test` de novo — aqui **sem** `continue-on-error` (release.yml responde "está pronto pra virar versão oficial?", régua mais rígida que o `ci.yml`) — builda `flutter build web --release`, empacota em zip e anexa como artifact na GitHub Release, que é criada com notas geradas automaticamente.
+- **Branch protection na `main`**: ativa, exige os mesmos checks do `ci.yml` (que já dispara em PR contra `main`, não só `develop`) antes de qualquer merge — `release.yml` roda depois do merge (dispara em push de tag, não em PR), então não serve como gate de merge, só de "está pronto pra virar release".
