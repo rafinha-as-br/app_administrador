@@ -75,8 +75,8 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 - **Triggers**: Pull Request para `develop`/`main`; push em `develop`
 - **Job `Guard - geoprag_modules deve ser git dependency`**: falha se detectar dependência via path local (`../`) no `pubspec.yaml` — pega de volta qualquer troca de dev local esquecida antes do push
 - **Job `Analyze, test & build web`** (depende do guard): checkout → Flutter 3.35.5 → `flutter pub get` → `flutter analyze --no-fatal-infos` → `flutter test` → `flutter build web`
-- **Gates obrigatórios (bloqueiam merge)**: os dois jobs acima (guard sempre; no segundo, `flutter analyze` — erros e warnings, infos não bloqueiam — e `flutter build web`)
-- **Não bloqueia ainda**: `flutter test` roda e reporta, mas não derruba o job (`continue-on-error: true`). Motivo: `navigation_test.dart` tem 1 teste hoje falhando na própria `develop` (GEOPRAG-65 — rota duplicada no menu a partir do cadastro de Aplicador), sem relação com este setup de CI. Assim que corrigido, remover o `continue-on-error` e marcar `test` como check obrigatório na branch protection.
+- **Gates obrigatórios (bloqueiam merge)**: os dois jobs acima (guard sempre; no segundo, `flutter analyze` — erros e warnings, infos não bloqueiam —, `flutter test` e `flutter build web`)
+- **Dívida técnica conhecida**: `navigation_test.dart` tem 1 teste falhando hoje (GEOPRAG-65 — rota duplicada no menu a partir do cadastro de Aplicador). Decisão de 2026-08-16: `test` é bloqueante mesmo assim (projeto solo, sem risco de travar outro desenvolvedor) — **nenhum PR mergeia até esse teste ser corrigido**.
 - Não builda mobile (Android/iOS): este app é o portal web de administração, sem alvo mobile real.
 - **Branch protection na `develop`**: ativa, exige os dois jobs acima passando + branch atualizada com a `develop` antes do merge (`strict: true`). `enforce_admins` está desligado — o dono do repo ainda consegue fazer bypass numa emergência, mas o fluxo normal (PR + merge automatizado) sempre passa pelos checks.
 
