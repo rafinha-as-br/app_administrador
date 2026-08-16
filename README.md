@@ -79,3 +79,13 @@ Workflow: [`.github/workflows/ci.yml`](.github/workflows/ci.yml)
 - **Não bloqueia ainda**: `flutter test` roda e reporta, mas não derruba o job (`continue-on-error: true`). Motivo: `navigation_test.dart` tem 1 teste hoje falhando na própria `develop` (GEOPRAG-65 — rota duplicada no menu a partir do cadastro de Aplicador), sem relação com este setup de CI. Assim que corrigido, remover o `continue-on-error` e marcar `test` como check obrigatório na branch protection.
 - Não builda mobile (Android/iOS): este app é o portal web de administração, sem alvo mobile real.
 - **Branch protection na `develop`**: ativa, exige os dois jobs acima passando + branch atualizada com a `develop` antes do merge (`strict: true`). `enforce_admins` está desligado — o dono do repo ainda consegue fazer bypass numa emergência, mas o fluxo normal (PR + merge automatizado) sempre passa pelos checks.
+
+## Release & Versionamento
+
+Ciclo de entrega separado do dia a dia de merges em `develop` — ver [Release & Versionamento](https://rafinha84dev.atlassian.net/wiki/spaces/CS1/pages/44335153) no Confluence para o conceito completo. Executado sob demanda por `jira-release-executor`, nunca automaticamente.
+
+- **Versão**: `version:` no `pubspec.yaml` (`X.Y.Z+build`, SemVer). Hoje em `0.1.0+1` — projeto em desenvolvimento inicial.
+- **Changelog**: [`CHANGELOG.md`](CHANGELOG.md), formato Keep a Changelog.
+- **Estratégia de branch**: sem branch de release dedicada por enquanto — `develop → main` direto via PR quando uma release for cortada. `release/X.Y.Z` fica reservada pra quando o projeto precisar de uma janela de estabilização (Release Candidate) antes do merge pra `main`.
+- **Pipeline**: [`.github/workflows/release.yml`](.github/workflows/release.yml), trigger em push de tag `v*`. Roda `analyze` + `test` de novo — aqui **sem** `continue-on-error` (release.yml responde "está pronto pra virar versão oficial?", régua mais rígida que o `ci.yml`) — builda `flutter build web --release`, empacota em zip e anexa como artifact na GitHub Release, que é criada com notas geradas automaticamente.
+- **Branch protection na `main`**: ativa, exige o job `Validate, build & publish release` passando antes de qualquer merge.
