@@ -161,6 +161,39 @@ final GoRouter _router = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/aplicacoes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(),
+        child: const DashboardDeAplicacoesScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicacoes/bairro',
+      builder: (context, state) {
+        final bairro = state.uri.queryParameters['bairro'] ?? '';
+        return BlocProvider(
+          create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(bairro: bairro),
+          child: VisualizacaoDeBairroScreen(bairro: bairro),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/aplicacoes/detalhes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildPontoDeAplicacaoDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoDePontoDeAplicacaoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicacoes/criar',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarPontoCubit(),
+        child: const CriacaoDePontoScreen(),
+      ),
+    ),
+    GoRoute(
       path: '/administradores',
       builder: (context, state) => MultiBlocProvider(
         providers: [
