@@ -29,6 +29,15 @@ final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
 final AdminSessionCubit _adminSessionCubit = _bootstrap
     .buildAdminSessionCubit();
 
+/// Solicitação de redefinição de senha (GEOPRAG-89) — provida na raiz pelo
+/// mesmo motivo do _tenantCubit/_adminSessionCubit acima: `/senha/aguardando`
+/// (tela do Sub-Administrador) e `/senha/autorizar` (tela do Administrador
+/// principal) simulam dois dispositivos vendo a MESMA solicitação pendente;
+/// com uma instância nova por rota, cada tela via seu próprio mock isolado e
+/// a decisão do Administrador nunca chegava à tela de espera.
+final SolicitacaoRedefinicaoRepository _solicitacaoRedefinicaoRepository =
+    _bootstrap.buildSolicitacaoRedefinicaoRepository();
+
 /// E-mail do Administrador logado — só chamado a partir de rotas
 /// `/administradores/*`, onde o `redirect` abaixo já garante
 /// [AdminSessionAutenticado].
@@ -93,22 +102,35 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/senha/aguardando',
-      builder: (context, state) => const AguardandoAutorizacaoScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAutorizacaoRedefinicaoCubit(
+          _solicitacaoRedefinicaoRepository,
+        ),
+        child: const AguardandoAutorizacaoScreen(),
+      ),
     ),
     GoRoute(
       path: '/senha/autorizar',
       builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildAutorizacaoRedefinicaoCubit(),
+        create: (_) => _bootstrap.buildAutorizacaoRedefinicaoCubit(
+          _solicitacaoRedefinicaoRepository,
+        ),
         child: const AutorizacaoRedefinicaoScreen(),
       ),
     ),
     GoRoute(
       path: '/senha/codigo-subadmin',
-      builder: (context, state) => const VerificarCodigoSubAdminScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildVerificarCodigoSubAdminCubit(),
+        child: const VerificarCodigoSubAdminScreen(),
+      ),
     ),
     GoRoute(
       path: '/senha/codigo-admin',
-      builder: (context, state) => const VerificarCodigoAdminScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildVerificarCodigoAdminCubit(),
+        child: const VerificarCodigoAdminScreen(),
+      ),
     ),
     GoRoute(
       path: '/senha/recriar',
