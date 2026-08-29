@@ -228,6 +228,13 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/estoque/formula',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildFormulasDosagemCubit(),
+        child: const FormulaDeDosagemScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/estoque/formula/novo',
       builder: (context, state) => const CadastroFormulaScreen(),
     ),
     GoRoute(
@@ -276,8 +283,15 @@ final GoRouter _router = GoRouter(
     GoRoute(
       path: '/denuncias_admin',
       builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildDenunciasCubit(),
+        create: (_) => _bootstrap.buildTriagemDenunciasController(),
         child: const DashboardDenunciasAdminScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/denuncias_admin/listagem',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildListagemDenunciasController(),
+        child: const ListagemDeDenunciasScreen(),
       ),
     ),
     GoRoute(

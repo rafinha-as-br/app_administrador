@@ -87,6 +87,9 @@ class AdminGoRouterNavigator implements AdminNavigator {
   @override
   void toEstoqueFormula() => _router.pushReplacement('/estoque/formula');
   @override
+  void toEstoqueFormulaNovo() =>
+      _router.pushReplacement('/estoque/formula/novo');
+  @override
   void toEstoqueLicitacao() => _router.pushReplacement('/estoque/licitacao');
   @override
   void toEstoqueProduto() => _router.pushReplacement('/estoque/produto');
@@ -114,6 +117,9 @@ class AdminGoRouterNavigator implements AdminNavigator {
 
   @override
   void toDenunciasAdmin() => _router.pushReplacement('/denuncias_admin');
+  @override
+  void toDenunciasAdminListagem() =>
+      _router.pushReplacement('/denuncias_admin/listagem');
   @override
   void toDenunciaAdminDetalhes(String denunciaId) => _router.pushReplacement(
     Uri(
