@@ -87,6 +87,11 @@ class AdminGoRouterNavigator implements AdminNavigator {
   @override
   void toEstoqueFormula() => _router.pushReplacement('/estoque/formula');
   @override
+  // GEOPRAG-105: ainda não há uma rota de listagem separada da de cadastro
+  // neste app — as duas apontam para o mesmo destino até essa divisão
+  // existir de fato.
+  void toEstoqueFormulaNovo() => _router.pushReplacement('/estoque/formula');
+  @override
   void toEstoqueLicitacao() => _router.pushReplacement('/estoque/licitacao');
   @override
   void toEstoqueProduto() => _router.pushReplacement('/estoque/produto');
