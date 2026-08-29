@@ -139,7 +139,7 @@ void main() {
 
         await verificaRota(tester, '/dashboard', 'Visão Geral');
         await verificaRota(tester, '/mapa', 'Mapa Hidrológico e Monitoramento');
-        await verificaRota(tester, '/aplicadores', 'Gestão de Aplicadores');
+        await verificaRota(tester, '/aplicadores', 'Gerenciamento de Aplicadores');
         await verificaRota(tester, '/estoque', 'Controle de Estoque e Compras');
         await verificaRota(
           tester,
@@ -424,7 +424,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Gestão de Aplicadores'),
+          matching: find.text('Gerenciamento de Aplicadores'),
         ),
         findsOneWidget,
       );
