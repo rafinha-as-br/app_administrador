@@ -174,6 +174,13 @@ final GoRouter _router = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/aplicadores/novo',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarAplicadorCubit(),
+        child: const CadastroDeAplicadorScreen(),
+      ),
+    ),
+    GoRoute(
       path: '/aplicadores/detalhes',
       builder: (context, state) => BlocProvider(
         create: (_) => _bootstrap.buildAplicadorDetalheCubit(
