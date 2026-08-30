@@ -139,7 +139,7 @@ void main() {
 
         await verificaRota(tester, '/dashboard', 'Visão Geral');
         await verificaRota(tester, '/mapa', 'Mapa Hidrológico e Monitoramento');
-        await verificaRota(tester, '/aplicadores', 'Gestão de Aplicadores');
+        await verificaRota(tester, '/aplicadores', 'Gerenciamento de Aplicadores');
         await verificaRota(tester, '/estoque', 'Controle de Estoque e Compras');
         await verificaRota(
           tester,
@@ -171,7 +171,7 @@ void main() {
   });
 
   testWidgets(
-    'clicar na linha do usuário abre o dialog de detalhes com as ações, e desativar/reativar funciona',
+    'tocar no ícone de detalhes abre o dialog com as ações, e desativar/reativar funciona',
     (tester) async {
       await _pumpApp(tester);
       await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
@@ -180,8 +180,12 @@ void main() {
       GoRouter.of(context).go('/administradores');
       await tester.pumpAndSettle();
 
-      // Clica na linha da Célia Ramos (Sub-Administrador ativa por padrão).
-      await tester.tap(find.text('Célia Ramos'));
+      // Toca no ícone "Ver detalhes" da linha da Célia Ramos (Sub-Administrador
+      // ativa por padrão) — GEOPRAG-90 trocou o toque na linha inteira por uma
+      // coluna "Detalhes" dedicada, no mesmo padrão dos demais dashboards.
+      const detalhesCelia = Key('detalhes-celia.ramos@gaspar.sc.gov.br');
+
+      await tester.tap(find.byKey(detalhesCelia));
       await tester.pumpAndSettle();
 
       expect(
@@ -207,9 +211,9 @@ void main() {
 
       expect(find.text('Cadastro desativado com sucesso.'), findsOneWidget);
 
-      // Reabre a linha: agora deve mostrar o indicador e o botão de
+      // Reabre pelo ícone: agora deve mostrar o indicador e o botão de
       // reativar no lugar do de desativar.
-      await tester.tap(find.text('Célia Ramos'));
+      await tester.tap(find.byKey(detalhesCelia));
       await tester.pumpAndSettle();
 
       expect(find.text('Reativar'), findsOneWidget);
@@ -420,7 +424,7 @@ void main() {
       expect(
         find.descendant(
           of: find.byType(AppBar),
-          matching: find.text('Gestão de Aplicadores'),
+          matching: find.text('Gerenciamento de Aplicadores'),
         ),
         findsOneWidget,
       );
