@@ -235,16 +235,22 @@ final GoRouter _router = GoRouter(
     ),
     GoRoute(
       path: '/estoque/formula/novo',
-      builder: (context, state) => const CadastroFormulaScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarFormulaCubit(),
+        child: const CadastroFormulaScreen(),
+      ),
     ),
     GoRoute(
       path: '/estoque/licitacao',
-      builder: (context, state) => const CadastroLicitacaoScreen(),
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarLicitacaoCubit(),
+        child: const CadastroLicitacaoScreen(),
+      ),
     ),
     GoRoute(
       path: '/estoque/produto',
       builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildProdutosCubit(),
+        create: (_) => _bootstrap.buildCriarProdutoCubit(),
         child: const CadastroProdutoScreen(),
       ),
     ),
