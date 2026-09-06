@@ -198,12 +198,12 @@ void main() {
       GoRouter.of(context).go('/administradores');
       await tester.pumpAndSettle();
 
-      // Toca no ícone "Ver detalhes" da linha da Célia Ramos (Sub-Administrador
-      // ativa por padrão) — GEOPRAG-90 trocou o toque na linha inteira por uma
-      // coluna "Detalhes" dedicada, no mesmo padrão dos demais dashboards.
-      const detalhesCelia = Key('detalhes-celia.ramos@gaspar.sc.gov.br');
+      // Toca na linha da Célia Ramos (Sub-Administrador ativa por padrão) —
+      // clicar em qualquer ponto da linha abre o detalhe, não uma coluna de
+      // ações separada (padrão de `onRowTap` do BaseListScreen, GEOPRAG-67).
+      final linhaCelia = find.text('celia.ramos@gaspar.sc.gov.br');
 
-      await tester.tap(find.byKey(detalhesCelia));
+      await tester.tap(linhaCelia);
       await tester.pumpAndSettle();
 
       expect(
@@ -229,9 +229,9 @@ void main() {
 
       expect(find.text('Cadastro desativado com sucesso.'), findsOneWidget);
 
-      // Reabre pelo ícone: agora deve mostrar o indicador e o botão de
+      // Reabre pela linha: agora deve mostrar o indicador e o botão de
       // reativar no lugar do de desativar.
-      await tester.tap(find.byKey(detalhesCelia));
+      await tester.tap(linhaCelia);
       await tester.pumpAndSettle();
 
       expect(find.text('Reativar'), findsOneWidget);
@@ -265,7 +265,10 @@ void main() {
       await tester.pumpAndSettle();
 
       final checkboxes = find.byType(Checkbox);
-      expect(checkboxes, findsNWidgets(6));
+      // GEOPRAG-129: mockApplicators cresceu de 6 para 30 aplicadores (volume
+      // extra só para exercitar scroll) — 30 linhas + 1 checkbox de
+      // select-all no cabeçalho.
+      expect(checkboxes, findsNWidgets(31));
 
       // Posições de tela (não Finders semânticos) capturadas ANTES de
       // qualquer seleção — é isso que um clique real de mouse usa: uma
