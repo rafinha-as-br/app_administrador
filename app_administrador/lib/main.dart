@@ -199,6 +199,16 @@ final GoRouter _router = GoRouter(
       ),
     ),
     GoRoute(
+      path: '/aplicacoes/editar',
+      builder: (context, state) {
+        final pontoId = state.uri.queryParameters['id'] ?? '';
+        return BlocProvider(
+          create: (_) => _bootstrap.buildEditarPontoDeAplicacaoCubit(pontoId),
+          child: EdicaoDePontoScreen(pontoId: pontoId),
+        );
+      },
+    ),
+    GoRoute(
       path: '/aplicadores',
       builder: (context, state) => BlocProvider(
         create: (_) => _bootstrap.buildAplicadoresCubit(),

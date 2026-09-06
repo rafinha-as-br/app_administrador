@@ -157,6 +157,13 @@ void main() {
           '/aplicacoes/novo',
           'Novo Ponto de Aplicação',
         );
+        // Sem `id` na query: a tela precisa abrir mostrando o feedback de
+        // "ponto não encontrado", não estourar exceção (GEOPRAG-109).
+        await verificaRota(
+          tester,
+          '/aplicacoes/editar',
+          'Editar Ponto de Aplicação',
+        );
         await verificaRota(tester, '/aplicadores', 'Gerenciamento de Aplicadores');
         await verificaRota(tester, '/estoque', 'Controle de Estoque e Compras');
         await verificaRota(

@@ -71,6 +71,13 @@ class AdminGoRouterNavigator implements AdminNavigator {
   );
   @override
   void toCriarPontoDeAplicacao() => _router.pushReplacement('/aplicacoes/novo');
+  @override
+  void toEditarPontoDeAplicacao(String pontoId) => _router.pushReplacement(
+    Uri(
+      path: '/aplicacoes/editar',
+      queryParameters: {'id': pontoId},
+    ).toString(),
+  );
 
   @override
   void toAplicadores() => _router.pushReplacement('/aplicadores');
