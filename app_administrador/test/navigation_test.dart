@@ -139,6 +139,24 @@ void main() {
 
         await verificaRota(tester, '/dashboard', 'Visão Geral');
         await verificaRota(tester, '/mapa', 'Mapa Hidrológico e Monitoramento');
+        await verificaRota(tester, '/aplicacoes', 'Gestão de Aplicações');
+        await verificaRota(
+          tester,
+          '/aplicacoes/bairro',
+          'Pontos de Aplicação do Bairro',
+        );
+        // Sem `id` na query: a tela precisa abrir mostrando o erro de "ponto
+        // não encontrado", não estourar exceção.
+        await verificaRota(
+          tester,
+          '/aplicacoes/detalhes',
+          'Ponto de Aplicação',
+        );
+        await verificaRota(
+          tester,
+          '/aplicacoes/novo',
+          'Novo Ponto de Aplicação',
+        );
         await verificaRota(tester, '/aplicadores', 'Gerenciamento de Aplicadores');
         await verificaRota(tester, '/estoque', 'Controle de Estoque e Compras');
         await verificaRota(
