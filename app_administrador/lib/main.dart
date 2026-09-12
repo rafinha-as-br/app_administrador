@@ -1,36 +1,385 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:geoprag_modules/geoprag_modules.dart';
+import 'package:geoprag_modules/portal_administrador/autenticacao/core/admin_account.dart';
+import 'package:geoprag_modules/portal_administrador/autenticacao/presentation/admin_session_cubit.dart';
+import 'package:geoprag_modules/portal_administrador/autenticacao/presentation/admin_session_state.dart';
+import 'package:geoprag_modules/portal_administrador/bootstrap.dart';
+import 'package:geoprag_modules/portal_administrador/tenant/tenant.dart';
+import 'package:go_router/go_router.dart';
+
+import 'navigation/admin_go_router_navigator.dart';
+import 'navigation/go_router_refresh_stream.dart';
 
 void main() {
   runApp(const AppAdministrador());
 }
+
+const AdminBootstrap _bootstrap = AdminBootstrap();
+
+// TODO(GEOPRAG-24): tenant_id real vem do login (Fase 4/contrato de
+// endpoints); mockado aqui até o contrato ser fechado com o backend.
+final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
+  ..load('gaspar-sc');
+
+// Sessão do administrador logado (GEOPRAG-36) — provida na raiz pelo mesmo
+// motivo do _tenantCubit acima: o guard de rota do módulo
+// `gerenciamento_de_administradores` precisa do cargo atual antes de
+// qualquer tela ser montada.
+final AdminSessionCubit _adminSessionCubit = _bootstrap
+    .buildAdminSessionCubit();
+
+/// Solicitação de redefinição de senha (GEOPRAG-89) — provida na raiz pelo
+/// mesmo motivo do _tenantCubit/_adminSessionCubit acima: `/senha/aguardando`
+/// (tela do Sub-Administrador) e `/senha/autorizar` (tela do Administrador
+/// principal) simulam dois dispositivos vendo a MESMA solicitação pendente;
+/// com uma instância nova por rota, cada tela via seu próprio mock isolado e
+/// a decisão do Administrador nunca chegava à tela de espera.
+final SolicitacaoRedefinicaoRepository _solicitacaoRedefinicaoRepository =
+    _bootstrap.buildSolicitacaoRedefinicaoRepository();
+
+/// E-mail do Administrador logado — só chamado a partir de rotas
+/// `/administradores/*`, onde o `redirect` abaixo já garante
+/// [AdminSessionAutenticado].
+String _administradorLogadoEmail() {
+  final sessao = _adminSessionCubit.state;
+  return sessao is AdminSessionAutenticado ? sessao.conta.email : '';
+}
+
+const _publicPaths = {
+  '/',
+  '/senha/esqueci',
+  '/senha/aguardando',
+  '/senha/autorizar',
+  '/senha/codigo-subadmin',
+  '/senha/codigo-admin',
+  '/senha/recriar',
+  '/tenant/carregando',
+};
+
+final GoRouter _router = GoRouter(
+  initialLocation: '/',
+  refreshListenable: Listenable.merge([
+    GoRouterRefreshStream(_tenantCubit.stream),
+    GoRouterRefreshStream(_adminSessionCubit.stream),
+  ]),
+  redirect: (context, state) {
+    if (_publicPaths.contains(state.matchedLocation)) return null;
+    if (_tenantCubit.state is! AdminTenantReady) return '/tenant/carregando';
+    // Guard geral de sessão: em Flutter web a URL do navegador sobrevive a
+    // um hot restart (que reseta o AdminSessionCubit para SemAcesso), então
+    // sem este guard uma rota protegida abriria "deslogada por baixo" —
+    // tela renderiza normal, mas qualquer coisa que dependa da sessão real
+    // (ex.: item de menu do Administrador) fica incoerente com o que a URL
+    // sugere. Só as rotas em `_publicPaths` dispensam sessão.
+    if (_adminSessionCubit.state is! AdminSessionAutenticado) return '/';
+    // GEOPRAG-36: módulo restrito a quem tem cargo Administrador — front-end
+    // apenas (validação em back-end é requisito documentado, não
+    // implementável nesta sessão de trabalho, ver bootstrap.dart).
+    if (state.matchedLocation.startsWith('/administradores')) {
+      final sessao = _adminSessionCubit.state;
+      final isAdministrador =
+          sessao is AdminSessionAutenticado &&
+          sessao.conta.role == AdminRole.administrador;
+      if (!isAdministrador) return '/dashboard';
+    }
+    return null;
+  },
+  routes: [
+    GoRoute(
+      path: '/',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAdminLoginCubit(),
+        child: const LoginScreenWeb(),
+      ),
+    ),
+    GoRoute(
+      path: '/senha/esqueci',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAdminEsqueciSenhaCubit(),
+        child: const EsqueciSenhaWebScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/senha/aguardando',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAutorizacaoRedefinicaoCubit(
+          _solicitacaoRedefinicaoRepository,
+        ),
+        child: const AguardandoAutorizacaoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/senha/autorizar',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAutorizacaoRedefinicaoCubit(
+          _solicitacaoRedefinicaoRepository,
+        ),
+        child: const AutorizacaoRedefinicaoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/senha/codigo-subadmin',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildVerificarCodigoSubAdminCubit(),
+        child: const VerificarCodigoSubAdminScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/senha/codigo-admin',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildVerificarCodigoAdminCubit(),
+        child: const VerificarCodigoAdminScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/senha/recriar',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAdminRecriarSenhaCubit(),
+        child: const RecriarSenhaWebScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/tenant/carregando',
+      builder: (context, state) => const TenantLoadingScreen(),
+    ),
+    GoRoute(
+      path: '/dashboard',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDashboardGeralCubit(),
+        child: const DashboardGeralScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/mapa',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildBairrosCubit(),
+        child: const MapaHidrologicoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/mapa/bairro',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildBairroDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const DetalheDoBairroScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicacoes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(),
+        child: const DashboardDeAplicacoesScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicacoes/bairro',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildPontosDoBairroCubit(
+          state.uri.queryParameters['bairro'] ?? '',
+        ),
+        child: const VisualizacaoDeBairroScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicacoes/detalhes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildPontoDeAplicacaoDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoDePontoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicacoes/novo',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarPontoDeAplicacaoCubit(),
+        child: const CriacaoDePontoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicacoes/editar',
+      builder: (context, state) {
+        final pontoId = state.uri.queryParameters['id'] ?? '';
+        return BlocProvider(
+          create: (_) => _bootstrap.buildEditarPontoDeAplicacaoCubit(pontoId),
+          child: EdicaoDePontoScreen(pontoId: pontoId),
+        );
+      },
+    ),
+    GoRoute(
+      path: '/aplicadores',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAplicadoresCubit(),
+        child: const DashboardAplicadoresScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicadores/novo',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarAplicadorCubit(),
+        child: const CadastroDeAplicadorScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/aplicadores/detalhes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildAplicadorDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoIndividualScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/administradores',
+      builder: (context, state) => MultiBlocProvider(
+        providers: [
+          BlocProvider(create: (_) => _bootstrap.buildAdministradoresCubit()),
+          BlocProvider(
+            create: (_) => _bootstrap.buildSolicitacoesPromocaoCubit(
+              _administradorLogadoEmail(),
+            ),
+          ),
+        ],
+        child: const DashboardAdministradoresScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/administradores/novo',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarAdministradorCubit(),
+        child: const CriacaoDeAdministradorScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/administradores/solicitacoes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildSolicitacoesPromocaoCubit(
+          _administradorLogadoEmail(),
+        ),
+        child: const SolicitacoesPromocaoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/estoque',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildProdutosCubit(),
+        child: const DashboardEstoqueScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/estoque/formula',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildFormulasDosagemCubit(),
+        child: const FormulaDeDosagemScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/estoque/formula/novo',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarFormulaCubit(),
+        child: const CadastroFormulaScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/estoque/licitacao',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarLicitacaoCubit(),
+        child: const CadastroLicitacaoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/estoque/produto',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCriarProdutoCubit(),
+        child: const CadastroProdutoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/estoque/visualizacao',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildProdutoDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoProdutoScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/distribuicoes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDistribuicoesCubit(),
+        child: const DashboardDistribuicoesScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/distribuicoes/cadastro',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildCadastroSaidaCubit(),
+        child: const CadastroSaidaScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/distribuicoes/visualizacao',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDistribuicaoDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoSaidaScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/denuncias_admin',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildTriagemDenunciasController(),
+        child: const DashboardDenunciasAdminScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/denuncias_admin/listagem',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildListagemDenunciasController(),
+        child: const ListagemDeDenunciasScreen(),
+      ),
+    ),
+    GoRoute(
+      path: '/denuncias_admin/detalhes',
+      builder: (context, state) => BlocProvider(
+        create: (_) => _bootstrap.buildDenunciaDetalheCubit(
+          state.uri.queryParameters['id'] ?? '',
+        ),
+        child: const VisualizacaoIndividualDenunciaScreen(),
+      ),
+    ),
+  ],
+);
 
 class AppAdministrador extends StatelessWidget {
   const AppAdministrador({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'GeoPrag - Admin',
-      theme: GeopragTheme.light(),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const LoginScreenWeb(),
-        '/dashboard': (context) => const DashboardGeralScreen(),
-        '/mapa': (context) => const MapMonitoringScreen(),
-        '/aplicadores': (context) => const DashboardAplicadoresScreen(),
-        '/aplicadores/detalhes': (context) => const VisualizacaoIndividualScreen(),
-        '/estoque': (context) => const DashboardEstoqueScreen(),
-        '/estoque/formula': (context) => const CadastroFormulaScreen(),
-        '/estoque/licitacao': (context) => const CadastroLicitacaoScreen(),
-        '/estoque/produto': (context) => const CadastroProdutoScreen(),
-        '/estoque/visualizacao': (context) => const VisualizacaoProdutoScreen(),
-        '/distribuicoes': (context) => const DashboardDistribuicoesScreen(),
-        '/distribuicoes/cadastro': (context) => const CadastroSaidaScreen(),
-        '/distribuicoes/visualizacao': (context) => const VisualizacaoSaidaScreen(),
-        '/denuncias_admin': (context) => const DashboardDenunciasAdminScreen(),
-        '/denuncias_admin/detalhes': (context) => const VisualizacaoIndividualDenunciaScreen(),
-      },
+    // TenantCubit e AdminSessionCubit são providos na raiz (exceção
+    // deliberada à regra de "BlocProvider escopado por rota" da Fase 3):
+    // ambos guiam o `redirect` do GoRouter e o `SidebarMenu` antes de
+    // qualquer tela existir, então precisam estar acima do router. Os
+    // demais Blocs (auth, etc.) ficam escopados por rota, dentro de cada
+    // `GoRoute.builder` acima.
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: _tenantCubit),
+        BlocProvider.value(value: _adminSessionCubit),
+      ],
+      child: MaterialApp.router(
+        title: 'GeoPrag - Admin',
+        theme: GeopragTheme.light(),
+        routerConfig: _router,
+        debugShowCheckedModeBanner: false,
+        builder: (context, child) => AdminNavigatorScope(
+          navigator: AdminGoRouterNavigator(_router),
+          child: child!,
+        ),
+      ),
     );
   }
 }
