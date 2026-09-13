@@ -133,13 +133,12 @@ void main() {
     }
 
     testWidgets(
-      'dashboard, mapa, aplicadores, estoque, distribuições, denúncias e administradores',
+      'dashboard, aplicadores, estoque, distribuições, denúncias e administradores',
       (tester) async {
         await _pumpApp(tester);
         await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
 
         await verificaRota(tester, '/dashboard', 'Visão Geral');
-        await verificaRota(tester, '/mapa', 'Mapa Hidrológico e Monitoramento');
         await verificaRota(tester, '/aplicacoes', 'Gestão de Aplicações');
         await verificaRota(
           tester,

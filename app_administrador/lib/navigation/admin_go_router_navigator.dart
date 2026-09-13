@@ -47,13 +47,6 @@ class AdminGoRouterNavigator implements AdminNavigator {
   void toDashboard() => _router.pushReplacement('/dashboard');
 
   @override
-  void toMapa() => _router.pushReplacement('/mapa');
-  @override
-  void toMapaBairro(String bairroId) => _router.pushReplacement(
-    Uri(path: '/mapa/bairro', queryParameters: {'id': bairroId}).toString(),
-  );
-
-  @override
   void toAplicacoes() => _router.pushReplacement('/aplicacoes');
   @override
   void toAplicacaoBairro(String bairro) => _router.pushReplacement(

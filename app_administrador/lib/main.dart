@@ -160,22 +160,6 @@ final GoRouter _router = GoRouter(
           ),
         ),
         GoRoute(
-          path: '/mapa',
-          builder: (context, state) => BlocProvider(
-            create: (_) => _bootstrap.buildBairrosCubit(),
-            child: const MapaHidrologicoScreen(),
-          ),
-        ),
-        GoRoute(
-          path: '/mapa/bairro',
-          builder: (context, state) => BlocProvider(
-            create: (_) => _bootstrap.buildBairroDetalheCubit(
-              state.uri.queryParameters['id'] ?? '',
-            ),
-            child: const DetalheDoBairroScreen(),
-          ),
-        ),
-        GoRoute(
           path: '/aplicacoes',
           builder: (context, state) => BlocProvider(
             create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(),
