@@ -52,6 +52,16 @@ String _administradorLogadoEmail() {
 AdminAccount _administradorLogado() =>
     (_adminSessionCubit.state as AdminSessionAutenticado).conta;
 
+/// Conta do usuário logado — autor dos eventos de auditoria (GEOPRAG-113)
+/// emitidos pelas rotas de Gestão de Aplicações, todas autenticadas: o
+/// `redirect` acima já garante [AdminSessionAutenticado] antes de qualquer
+/// uma delas montar.
+AdminAccount _contaLogada() {
+  final sessao = _adminSessionCubit.state;
+  if (sessao is AdminSessionAutenticado) return sessao.conta;
+  throw StateError('Rota autenticada acessada sem sessão ativa.');
+}
+
 const _publicPaths = {
   '/',
   '/senha/esqueci',
@@ -184,7 +194,8 @@ final GoRouter _router = GoRouter(
         GoRoute(
           path: '/aplicacoes',
           builder: (context, state) => BlocProvider(
-            create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(),
+            create: (_) =>
+                _bootstrap.buildPontosDeAplicacaoCubit(contaAtual: _contaLogada()),
             child: const DashboardDeAplicacoesScreen(),
           ),
         ),
@@ -193,6 +204,7 @@ final GoRouter _router = GoRouter(
           builder: (context, state) => BlocProvider(
             create: (_) => _bootstrap.buildPontosDoBairroCubit(
               state.uri.queryParameters['bairro'] ?? '',
+              contaAtual: _contaLogada(),
             ),
             child: const VisualizacaoDeBairroScreen(),
           ),
@@ -202,6 +214,7 @@ final GoRouter _router = GoRouter(
           builder: (context, state) => BlocProvider(
             create: (_) => _bootstrap.buildPontoDeAplicacaoDetalheCubit(
               state.uri.queryParameters['id'] ?? '',
+              contaAtual: _contaLogada(),
             ),
             child: const VisualizacaoDePontoScreen(),
           ),
@@ -209,7 +222,9 @@ final GoRouter _router = GoRouter(
         GoRoute(
           path: '/aplicacoes/novo',
           builder: (context, state) => BlocProvider(
-            create: (_) => _bootstrap.buildCriarPontoDeAplicacaoCubit(),
+            create: (_) => _bootstrap.buildCriarPontoDeAplicacaoCubit(
+              contaAtual: _contaLogada(),
+            ),
             child: const CriacaoDePontoScreen(),
           ),
         ),
@@ -218,8 +233,10 @@ final GoRouter _router = GoRouter(
           builder: (context, state) {
             final pontoId = state.uri.queryParameters['id'] ?? '';
             return BlocProvider(
-              create: (_) =>
-                  _bootstrap.buildEditarPontoDeAplicacaoCubit(pontoId),
+              create: (_) => _bootstrap.buildEditarPontoDeAplicacaoCubit(
+                pontoId,
+                contaAtual: _contaLogada(),
+              ),
               child: EdicaoDePontoScreen(pontoId: pontoId),
             );
           },
