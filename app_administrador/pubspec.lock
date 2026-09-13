@@ -117,7 +117,7 @@ packages:
     description:
       path: geoprag_modules_project
       ref: develop
-      resolved-ref: db4d583eafaa9d2bc1521de78f4727b74ee16c01
+      resolved-ref: "29e815e9e29425e88b799df5db4265ff18722ad5"
       url: "https://github.com/rafinha-as-br/geoprag_modules.git"
     source: git
     version: "0.1.0"
