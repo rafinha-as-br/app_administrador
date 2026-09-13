@@ -143,213 +143,227 @@ final GoRouter _router = GoRouter(
       path: '/tenant/carregando',
       builder: (context, state) => const TenantLoadingScreen(),
     ),
-    GoRoute(
-      path: '/dashboard',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildDashboardGeralCubit(),
-        child: const DashboardGeralScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/mapa',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildBairrosCubit(),
-        child: const MapaHidrologicoScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/mapa/bairro',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildBairroDetalheCubit(
-          state.uri.queryParameters['id'] ?? '',
+    // GEOPRAG-116: todas as rotas pós-login do Portal Administrador ficam
+    // dentro deste único `ShellRoute` — o `AdminScaffold` (sidebar) é montado
+    // uma única vez, fora do `Navigator` de conteúdo, então navegar pelo menu
+    // não recria nem reanima o sidebar; só a página da rota atual, dentro do
+    // painel à direita, é substituída.
+    ShellRoute(
+      builder: (context, state, child) =>
+          AdminScaffold(currentRoute: state.matchedLocation, child: child),
+      routes: [
+        GoRoute(
+          path: '/dashboard',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildDashboardGeralCubit(),
+            child: const DashboardGeralScreen(),
+          ),
         ),
-        child: const DetalheDoBairroScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/aplicacoes',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(),
-        child: const DashboardDeAplicacoesScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/aplicacoes/bairro',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildPontosDoBairroCubit(
-          state.uri.queryParameters['bairro'] ?? '',
+        GoRoute(
+          path: '/mapa',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildBairrosCubit(),
+            child: const MapaHidrologicoScreen(),
+          ),
         ),
-        child: const VisualizacaoDeBairroScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/aplicacoes/detalhes',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildPontoDeAplicacaoDetalheCubit(
-          state.uri.queryParameters['id'] ?? '',
+        GoRoute(
+          path: '/mapa/bairro',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildBairroDetalheCubit(
+              state.uri.queryParameters['id'] ?? '',
+            ),
+            child: const DetalheDoBairroScreen(),
+          ),
         ),
-        child: const VisualizacaoDePontoScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/aplicacoes/novo',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildCriarPontoDeAplicacaoCubit(),
-        child: const CriacaoDePontoScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/aplicacoes/editar',
-      builder: (context, state) {
-        final pontoId = state.uri.queryParameters['id'] ?? '';
-        return BlocProvider(
-          create: (_) => _bootstrap.buildEditarPontoDeAplicacaoCubit(pontoId),
-          child: EdicaoDePontoScreen(pontoId: pontoId),
-        );
-      },
-    ),
-    GoRoute(
-      path: '/aplicadores',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildAplicadoresCubit(),
-        child: const DashboardAplicadoresScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/aplicadores/novo',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildCriarAplicadorCubit(),
-        child: const CadastroDeAplicadorScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/aplicadores/detalhes',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildAplicadorDetalheCubit(
-          state.uri.queryParameters['id'] ?? '',
+        GoRoute(
+          path: '/aplicacoes',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(),
+            child: const DashboardDeAplicacoesScreen(),
+          ),
         ),
-        child: const VisualizacaoIndividualScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/administradores',
-      builder: (context, state) => MultiBlocProvider(
-        providers: [
-          BlocProvider(create: (_) => _bootstrap.buildAdministradoresCubit()),
-          BlocProvider(
+        GoRoute(
+          path: '/aplicacoes/bairro',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildPontosDoBairroCubit(
+              state.uri.queryParameters['bairro'] ?? '',
+            ),
+            child: const VisualizacaoDeBairroScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/aplicacoes/detalhes',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildPontoDeAplicacaoDetalheCubit(
+              state.uri.queryParameters['id'] ?? '',
+            ),
+            child: const VisualizacaoDePontoScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/aplicacoes/novo',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildCriarPontoDeAplicacaoCubit(),
+            child: const CriacaoDePontoScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/aplicacoes/editar',
+          builder: (context, state) {
+            final pontoId = state.uri.queryParameters['id'] ?? '';
+            return BlocProvider(
+              create: (_) =>
+                  _bootstrap.buildEditarPontoDeAplicacaoCubit(pontoId),
+              child: EdicaoDePontoScreen(pontoId: pontoId),
+            );
+          },
+        ),
+        GoRoute(
+          path: '/aplicadores',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildAplicadoresCubit(),
+            child: const DashboardAplicadoresScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/aplicadores/novo',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildCriarAplicadorCubit(),
+            child: const CadastroDeAplicadorScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/aplicadores/detalhes',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildAplicadorDetalheCubit(
+              state.uri.queryParameters['id'] ?? '',
+            ),
+            child: const VisualizacaoIndividualScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/administradores',
+          builder: (context, state) => MultiBlocProvider(
+            providers: [
+              BlocProvider(
+                create: (_) => _bootstrap.buildAdministradoresCubit(),
+              ),
+              BlocProvider(
+                create: (_) => _bootstrap.buildSolicitacoesPromocaoCubit(
+                  _administradorLogadoEmail(),
+                ),
+              ),
+            ],
+            child: const DashboardAdministradoresScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/administradores/novo',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildCriarAdministradorCubit(),
+            child: const CriacaoDeAdministradorScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/administradores/solicitacoes',
+          builder: (context, state) => BlocProvider(
             create: (_) => _bootstrap.buildSolicitacoesPromocaoCubit(
               _administradorLogadoEmail(),
             ),
+            child: const SolicitacoesPromocaoScreen(),
           ),
-        ],
-        child: const DashboardAdministradoresScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/administradores/novo',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildCriarAdministradorCubit(),
-        child: const CriacaoDeAdministradorScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/administradores/solicitacoes',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildSolicitacoesPromocaoCubit(
-          _administradorLogadoEmail(),
         ),
-        child: const SolicitacoesPromocaoScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/estoque',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildProdutosCubit(),
-        child: const DashboardEstoqueScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/estoque/formula',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildFormulasDosagemCubit(),
-        child: const FormulaDeDosagemScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/estoque/formula/novo',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildCriarFormulaCubit(),
-        child: const CadastroFormulaScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/estoque/licitacao',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildCriarLicitacaoCubit(),
-        child: const CadastroLicitacaoScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/estoque/produto',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildCriarProdutoCubit(),
-        child: const CadastroProdutoScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/estoque/visualizacao',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildProdutoDetalheCubit(
-          state.uri.queryParameters['id'] ?? '',
+        GoRoute(
+          path: '/estoque',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildProdutosCubit(),
+            child: const DashboardEstoqueScreen(),
+          ),
         ),
-        child: const VisualizacaoProdutoScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/distribuicoes',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildDistribuicoesCubit(),
-        child: const DashboardDistribuicoesScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/distribuicoes/cadastro',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildCadastroSaidaCubit(),
-        child: const CadastroSaidaScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/distribuicoes/visualizacao',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildDistribuicaoDetalheCubit(
-          state.uri.queryParameters['id'] ?? '',
+        GoRoute(
+          path: '/estoque/formula',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildFormulasDosagemCubit(),
+            child: const FormulaDeDosagemScreen(),
+          ),
         ),
-        child: const VisualizacaoSaidaScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/denuncias_admin',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildTriagemDenunciasController(),
-        child: const DashboardDenunciasAdminScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/denuncias_admin/listagem',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildListagemDenunciasController(),
-        child: const ListagemDeDenunciasScreen(),
-      ),
-    ),
-    GoRoute(
-      path: '/denuncias_admin/detalhes',
-      builder: (context, state) => BlocProvider(
-        create: (_) => _bootstrap.buildDenunciaDetalheCubit(
-          state.uri.queryParameters['id'] ?? '',
+        GoRoute(
+          path: '/estoque/formula/novo',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildCriarFormulaCubit(),
+            child: const CadastroFormulaScreen(),
+          ),
         ),
-        child: const VisualizacaoIndividualDenunciaScreen(),
-      ),
+        GoRoute(
+          path: '/estoque/licitacao',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildCriarLicitacaoCubit(),
+            child: const CadastroLicitacaoScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/estoque/produto',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildCriarProdutoCubit(),
+            child: const CadastroProdutoScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/estoque/visualizacao',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildProdutoDetalheCubit(
+              state.uri.queryParameters['id'] ?? '',
+            ),
+            child: const VisualizacaoProdutoScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/distribuicoes',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildDistribuicoesCubit(),
+            child: const DashboardDistribuicoesScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/distribuicoes/cadastro',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildCadastroSaidaCubit(),
+            child: const CadastroSaidaScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/distribuicoes/visualizacao',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildDistribuicaoDetalheCubit(
+              state.uri.queryParameters['id'] ?? '',
+            ),
+            child: const VisualizacaoSaidaScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/denuncias_admin',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildTriagemDenunciasController(),
+            child: const DashboardDenunciasAdminScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/denuncias_admin/listagem',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildListagemDenunciasController(),
+            child: const ListagemDeDenunciasScreen(),
+          ),
+        ),
+        GoRoute(
+          path: '/denuncias_admin/detalhes',
+          builder: (context, state) => BlocProvider(
+            create: (_) => _bootstrap.buildDenunciaDetalheCubit(
+              state.uri.queryParameters['id'] ?? '',
+            ),
+            child: const VisualizacaoIndividualDenunciaScreen(),
+          ),
+        ),
+      ],
     ),
   ],
 );

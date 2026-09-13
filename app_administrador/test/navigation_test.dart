@@ -4,6 +4,7 @@
 // encontrado, etc.).
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:geoprag_modules/geoprag_modules.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:app_administrador/main.dart';
@@ -405,6 +406,52 @@ void main() {
             'voltar para "Gerenciamento de Administradores" pelo menu não '
             'deveria deixar um frame duplicado do dashboard na pilha (bug '
             'relatado na review do PR #13)',
+      );
+    },
+  );
+
+  testWidgets(
+    'GEOPRAG-116: tocar em "Gestão de Aplicações" no menu lateral abre a '
+    'tela (o switch de navegação do sidebar não tratava essa rota, então o '
+    'clique não fazia nada)',
+    (tester) async {
+      await _pumpApp(tester);
+      await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
+
+      await tester.tap(find.widgetWithText(ListTile, 'Gestão de Aplicações'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byType(AppBar),
+          matching: find.text('Gestão de Aplicações'),
+        ),
+        findsOneWidget,
+      );
+    },
+  );
+
+  testWidgets(
+    'GEOPRAG-116: o sidebar não é recriado ao trocar de tela pelo menu — só '
+    'o painel de conteúdo é substituído',
+    (tester) async {
+      await _pumpApp(tester);
+      await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
+
+      final sidebarAntes = tester.element(find.byType(SidebarMenu));
+
+      await tester.tap(find.widgetWithText(ListTile, 'Estoque e Compras'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(ListTile, 'Aplicadores'));
+      await tester.pumpAndSettle();
+
+      final sidebarDepois = tester.element(find.byType(SidebarMenu));
+      expect(
+        identical(sidebarAntes, sidebarDepois),
+        isTrue,
+        reason:
+            'o sidebar deveria sobreviver à troca de tela (mesmo Element), '
+            'não ser desmontado e remontado a cada navegação',
       );
     },
   );
