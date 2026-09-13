@@ -46,6 +46,12 @@ String _administradorLogadoEmail() {
   return sessao is AdminSessionAutenticado ? sessao.conta.email : '';
 }
 
+/// Conta completa do Administrador logado — usado por `/conta/editar`
+/// (GEOPRAG-148), que precisa de mais do que só o e-mail. Mesma garantia de
+/// [_administradorLogadoEmail]: só alcançável pós-`redirect`.
+AdminAccount _administradorLogado() =>
+    (_adminSessionCubit.state as AdminSessionAutenticado).conta;
+
 const _publicPaths = {
   '/',
   '/senha/esqueci',
@@ -271,6 +277,18 @@ final GoRouter _router = GoRouter(
               _administradorLogadoEmail(),
             ),
             child: const SolicitacoesPromocaoScreen(),
+          ),
+        ),
+        // Fora do namespace /administradores apesar de a tela viver no
+        // mesmo módulo (gerenciamento_de_administradores): qualquer
+        // administrador edita os próprios dados, não só quem gerencia
+        // outros administradores (GEOPRAG-148).
+        GoRoute(
+          path: '/conta/editar',
+          builder: (context, state) => BlocProvider(
+            create: (_) =>
+                _bootstrap.buildEditarMeusDadosCubit(_administradorLogado()),
+            child: const EditarMeusDadosScreen(),
           ),
         ),
         GoRoute(

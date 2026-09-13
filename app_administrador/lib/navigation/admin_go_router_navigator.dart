@@ -155,6 +155,9 @@ class AdminGoRouterNavigator implements AdminNavigator {
   );
 
   @override
+  void toEditarMeusDados() => _router.pushReplacement('/conta/editar');
+
+  @override
   void toLogout() => _router.pushReplacement('/');
   @override
   void toLoginResetStack() => _router.go('/');
