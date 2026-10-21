@@ -9,7 +9,60 @@ import 'package:go_router/go_router.dart';
 
 import 'package:app_administrador/main.dart';
 
+/// Armazenamento em memória no lugar do `flutter_secure_storage`, que não tem
+/// plugin nativo no ambiente de teste.
+class _ArmazenamentoEmMemoria implements ArmazenamentoSeguro {
+  final Map<String, String> _dados = {};
+
+  @override
+  Future<String?> ler(String chave) async => _dados[chave];
+
+  @override
+  Future<void> gravar(String chave, String valor) async =>
+      _dados[chave] = valor;
+
+  @override
+  Future<void> apagar(String chave) async => _dados.remove(chave);
+}
+
+/// Cliente HTTP sem rede: responde ao `POST /auth/login` como a API faria
+/// (GEOPRAG-187) e devolve Sub-Administrador para a conta da Célia.
+class _ApiDeTeste extends ApiClient {
+  _ApiDeTeste()
+    : super(
+        config: ApiConfig(baseUrl: 'http://localhost:8080'),
+        sessao: SessaoDeTokensEmMemoria(),
+      );
+
+  @override
+  Future<Object?> post(
+    String caminho, {
+    Object? corpo,
+    Map<String, dynamic>? query,
+    bool autenticado = true,
+  }) async {
+    final identificador = (corpo! as Map<String, dynamic>)['identificador'];
+    final subAdmin = (identificador as String).startsWith('celia');
+    return {
+      'accessToken': 'access-de-teste',
+      'expiresInSeconds': 900,
+      'usuario': {
+        'id': subAdmin ? 'adm-2' : 'adm-1',
+        'nome': subAdmin ? 'Célia Ramos' : 'Marcos Vieira',
+        'perfil': subAdmin ? 'SUB_ADMINISTRADOR' : 'ADMINISTRADOR',
+        'tenantId': 'gaspar-sc',
+        'email': identificador,
+        'status': 'ATIVO',
+      },
+    };
+  }
+}
+
 Future<void> _pumpApp(WidgetTester tester) async {
+  // `sessaoDoApp` e o roteador são singletons de main.dart, compartilhados
+  // entre os testes: cada teste começa sem sessão (GEOPRAG-187).
+  sessaoDoApp.sessaoPerdida();
+
   // Viewport padrão de teste (800x600) é menor que o layout desktop-only
   // do portal (login com painéis lado a lado, sidebar fixa) e causa
   // overflow + botões fora da área de hit-test. Usa um tamanho realista de
@@ -49,6 +102,13 @@ Future<void> _login(
 }
 
 void main() {
+  setUpAll(() {
+    ApiClientProvider.configurarSessao(
+      SessaoSegura(armazenamento: _ArmazenamentoEmMemoria()),
+    );
+    ApiClientProvider.configurar(_ApiDeTeste());
+  });
+
   testWidgets('guard geral redireciona para o login quando não autenticado', (
     tester,
   ) async {
@@ -62,6 +122,39 @@ void main() {
     // widget renderizado dentro da rota atual (ex.: o `Scaffold` da tela).
     final context = tester.element(find.byType(Scaffold).first);
     GoRouter.of(context).go('/dashboard');
+    await tester.pumpAndSettle();
+
+    expect(find.text('Acesso Restrito'), findsOneWidget);
+    expect(find.text('Dashboard'), findsNothing);
+  });
+
+  testWidgets('sessão reaberta pula o login e abre o dashboard', (
+    tester,
+  ) async {
+    // GEOPRAG-187: reabrir o portal com a sessão guardada no navegador não
+    // pede o login de novo, e o tenant vem da conta, não de valor fixo.
+    await _pumpApp(tester);
+    sessaoDoApp.iniciarSessao(mockAdminAccounts.first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Dashboard'), findsOneWidget);
+    expect(find.text('Acesso Restrito'), findsNothing);
+
+    final context = tester.element(find.byType(Scaffold).first);
+    GoRouter.of(context).go('/');
+    await tester.pumpAndSettle();
+    expect(find.text('Acesso Restrito'), findsNothing);
+    expect(find.text('Dashboard'), findsOneWidget);
+  });
+
+  testWidgets('perder a sessão (token expirado) volta ao login', (
+    tester,
+  ) async {
+    await _pumpApp(tester);
+    await _login(tester, identifier: 'admin@gaspar.sc.gov.br');
+    expect(find.text('Dashboard'), findsOneWidget);
+
+    sessaoDoApp.sessaoPerdida();
     await tester.pumpAndSettle();
 
     expect(find.text('Acesso Restrito'), findsOneWidget);
@@ -164,7 +257,11 @@ void main() {
           '/aplicacoes/editar',
           'Editar Ponto de Aplicação',
         );
-        await verificaRota(tester, '/aplicadores', 'Gerenciamento de Aplicadores');
+        await verificaRota(
+          tester,
+          '/aplicadores',
+          'Gerenciamento de Aplicadores',
+        );
         await verificaRota(tester, '/estoque', 'Controle de Estoque e Compras');
         await verificaRota(
           tester,

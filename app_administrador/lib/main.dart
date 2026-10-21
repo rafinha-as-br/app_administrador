@@ -11,16 +11,23 @@ import 'package:go_router/go_router.dart';
 import 'navigation/admin_go_router_navigator.dart';
 import 'navigation/go_router_refresh_stream.dart';
 
-void main() {
+/// A URL da API entra na compilação:
+/// `--dart-define=API_BASE_URL=http://localhost:8080` (GEOPRAG-187).
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  // Token expirado e sem refresh no portal: o token já foi apagado, só falta
+  // voltar ao login.
+  _bootstrap.configurarApi(aoPerderSessao: _adminSessionCubit.sessaoPerdida);
+  // Reabre a sessão guardada no navegador antes de o portal aparecer.
+  await _adminSessionCubit.restaurar();
   runApp(const AppAdministrador());
 }
 
 const AdminBootstrap _bootstrap = AdminBootstrap();
 
-// TODO(GEOPRAG-24): tenant_id real vem do login (Fase 4/contrato de
-// endpoints); mockado aqui até o contrato ser fechado com o backend.
-final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
-  ..load('gaspar-sc');
+// O tenant vem da sessão (login), nunca de valor fixo (GEOPRAG-187): só
+// carrega depois que há alguém logado.
+final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit();
 
 // Sessão do administrador logado (GEOPRAG-36) — provida na raiz pelo mesmo
 // motivo do _tenantCubit acima: o guard de rota do módulo
@@ -28,6 +35,17 @@ final AdminTenantCubit _tenantCubit = _bootstrap.buildTenantCubit()
 // qualquer tela ser montada.
 final AdminSessionCubit _adminSessionCubit = _bootstrap
     .buildAdminSessionCubit();
+
+/// Cubit de sessão do portal, para os testes começarem sem sessão.
+@visibleForTesting
+AdminSessionCubit get sessaoDoApp => _adminSessionCubit;
+
+/// Carrega a configuração do tenant da conta logada.
+void _carregarTenantDaSessao(AdminSessionState sessao) {
+  if (sessao is AdminSessionAutenticado) {
+    _tenantCubit.load(sessao.conta.tenantId);
+  }
+}
 
 /// Solicitação de redefinição de senha (GEOPRAG-89) — provida na raiz pelo
 /// mesmo motivo do _tenantCubit/_adminSessionCubit acima: `/senha/aguardando`
@@ -80,15 +98,25 @@ final GoRouter _router = GoRouter(
     GoRouterRefreshStream(_adminSessionCubit.stream),
   ]),
   redirect: (context, state) {
-    if (_publicPaths.contains(state.matchedLocation)) return null;
-    if (_tenantCubit.state is! AdminTenantReady) return '/tenant/carregando';
+    final local = state.matchedLocation;
+    final autenticado = _adminSessionCubit.state is AdminSessionAutenticado;
+    final tenantPronto = _tenantCubit.state is AdminTenantReady;
+    // Sessão reaberta (ou recém-iniciada): quem já está logado não volta ao
+    // login, e sai da tela de carregamento quando o tenant fica pronto.
+    if (autenticado &&
+        (local == '/' || (local == '/tenant/carregando' && tenantPronto))) {
+      return '/dashboard';
+    }
+    if (_publicPaths.contains(local)) return null;
     // Guard geral de sessão: em Flutter web a URL do navegador sobrevive a
     // um hot restart (que reseta o AdminSessionCubit para SemAcesso), então
     // sem este guard uma rota protegida abriria "deslogada por baixo" —
     // tela renderiza normal, mas qualquer coisa que dependa da sessão real
     // (ex.: item de menu do Administrador) fica incoerente com o que a URL
-    // sugere. Só as rotas em `_publicPaths` dispensam sessão.
-    if (_adminSessionCubit.state is! AdminSessionAutenticado) return '/';
+    // sugere. Só as rotas em `_publicPaths` dispensam sessão. Vem antes do
+    // guard de tenant: o tenant só carrega depois do login.
+    if (!autenticado) return '/';
+    if (!tenantPronto) return '/tenant/carregando';
     // GEOPRAG-36: módulo restrito a quem tem cargo Administrador — front-end
     // apenas (validação em back-end é requisito documentado, não
     // implementável nesta sessão de trabalho, ver bootstrap.dart).
@@ -178,8 +206,9 @@ final GoRouter _router = GoRouter(
         GoRoute(
           path: '/aplicacoes',
           builder: (context, state) => BlocProvider(
-            create: (_) =>
-                _bootstrap.buildPontosDeAplicacaoCubit(contaAtual: _contaLogada()),
+            create: (_) => _bootstrap.buildPontosDeAplicacaoCubit(
+              contaAtual: _contaLogada(),
+            ),
             child: const DashboardDeAplicacoesScreen(),
           ),
         ),
@@ -387,8 +416,21 @@ final GoRouter _router = GoRouter(
   ],
 );
 
-class AppAdministrador extends StatelessWidget {
+class AppAdministrador extends StatefulWidget {
   const AppAdministrador({super.key});
+
+  @override
+  State<AppAdministrador> createState() => _AppAdministradorState();
+}
+
+class _AppAdministradorState extends State<AppAdministrador> {
+  @override
+  void initState() {
+    super.initState();
+    // Sessão reaberta ao iniciar o portal: o tenant dela precisa carregar
+    // mesmo sem nenhuma mudança de estado a ouvir.
+    _carregarTenantDaSessao(_adminSessionCubit.state);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -403,14 +445,18 @@ class AppAdministrador extends StatelessWidget {
         BlocProvider.value(value: _tenantCubit),
         BlocProvider.value(value: _adminSessionCubit),
       ],
-      child: MaterialApp.router(
-        title: 'GeoPrag - Admin',
-        theme: GeopragTheme.light(),
-        routerConfig: _router,
-        debugShowCheckedModeBanner: false,
-        builder: (context, child) => AdminNavigatorScope(
-          navigator: AdminGoRouterNavigator(_router),
-          child: child!,
+      // Login feito agora: carrega o tenant que o servidor devolveu.
+      child: BlocListener<AdminSessionCubit, AdminSessionState>(
+        listener: (_, sessao) => _carregarTenantDaSessao(sessao),
+        child: MaterialApp.router(
+          title: 'GeoPrag - Admin',
+          theme: GeopragTheme.light(),
+          routerConfig: _router,
+          debugShowCheckedModeBanner: false,
+          builder: (context, child) => AdminNavigatorScope(
+            navigator: AdminGoRouterNavigator(_router),
+            child: child!,
+          ),
         ),
       ),
     );
